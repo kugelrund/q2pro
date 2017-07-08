@@ -631,6 +631,14 @@ static char *read_string(FILE *f)
         gi.error("%s: bad length", __func__);
     }
 
+    if (len == 0) {
+        // biggun saves seem to have problem with strings of length 0 ...
+        // writing something into it with at least 2 characters fixes it somehow.
+        s = gi.TagMalloc(sizeof(".."), TAG_LEVEL);
+        strncpy(s, "..", sizeof(".."));
+        return s;
+    }
+
     s = gi.TagMalloc(len + 1, TAG_LEVEL);
     read_data(s, len, f);
     s[len] = 0;
