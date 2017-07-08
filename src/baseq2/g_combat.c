@@ -100,7 +100,7 @@ void Killed(edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, ve
             if (coop->value && attacker->client)
                 attacker->client->resp.score++;
             // medics won't heal monsters that they kill themselves
-            if (strcmp(attacker->classname, "monster_medic") == 0)
+            if (attacker->classname != NULL && strcmp(attacker->classname, "monster_medic") == 0)
                 targ->owner = attacker;
         }
     }
