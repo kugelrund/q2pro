@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "server.h"
 #include "client/input.h"
+#include "speedrun/timer.h"
 
 pmoveParams_t   sv_pmp;
 
@@ -1673,6 +1674,7 @@ static inline qboolean check_paused(void)
 #endif
 
     if (!sv_paused->integer) {
+        SpeedrunPauseTimer();
         Cvar_Set("sv_paused", "1");
         IN_Activate();
     }

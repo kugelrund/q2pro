@@ -20,6 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define GAME_H
 
 #include "shared/list.h"
+#include "speedrun/timer.h"
 
 //
 // game.h -- game dll information visible to server
@@ -182,6 +183,14 @@ typedef struct {
     void (*AddCommandString)(const char *text);
 
     void (*DebugGraph)(float value, int color);
+
+    void (*SpeedrunUnpauseTimer)(void);
+    qboolean (*SpeedrunPauseTimer)(void);
+    void (*SpeedrunLevelFinished)(void);
+    void (*SpeedrunGetTotalTimeString)(
+        int accuracy, char time_string[static SPEEDRUN_TIME_LENGTH]);
+    void (*SpeedrunGetLevelTimeString)(
+        int accuracy, char time_string[static SPEEDRUN_TIME_LENGTH]);
 } game_import_t;
 
 //

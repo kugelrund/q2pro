@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // cl_main.c  -- client main loop
 
 #include "client.h"
+#include "speedrun/timer.h"
 
 cvar_t  *rcon_address;
 
@@ -67,6 +68,10 @@ cvar_t  *cl_protocol;
 cvar_t  *gender_auto;
 
 cvar_t  *cl_vwep;
+
+// Additions for q2pro-speed
+cvar_t  *cl_drawSpeedrunTotalTimer;
+cvar_t  *cl_drawSpeedrunLevelTimer;
 
 //
 // userinfo
@@ -1064,6 +1069,8 @@ static void CL_Changing_f(void)
     if (cls.state < ca_connected) {
         return;
     }
+
+    SpeedrunPauseTimer();
 
     if (cls.demo.recording)
         CL_Stop_f();
@@ -2486,6 +2493,7 @@ Perform complete restart of the renderer subsystem.
 */
 static void CL_RestartRefresh_f(void)
 {
+    SpeedrunPauseTimer();
     CL_RestartRefresh(qtrue);
 }
 
@@ -2687,6 +2695,10 @@ static void CL_InitLocal(void)
     cl_rollhack = Cvar_Get("cl_rollhack", "1", 0);
     cl_noglow = Cvar_Get("cl_noglow", "0", 0);
     cl_nolerp = Cvar_Get("cl_nolerp", "0", 0);
+
+    // Additions for q2pro-speed
+    cl_drawSpeedrunTotalTimer = Cvar_Get("cl_drawtotaltimer", "0", CVAR_ARCHIVE);
+    cl_drawSpeedrunLevelTimer = Cvar_Get("cl_drawleveltimer", "0", CVAR_ARCHIVE);
 
     // hack for timedemo
     com_timedemo->changed = cl_sync_changed;
@@ -2989,6 +3001,7 @@ void CL_CheckForPause(void)
         // don't pause when running timedemo!
         if (cl_paused->integer && !com_timedemo->integer) {
             if (!sv_paused->integer) {
+                SpeedrunPauseTimer();
                 Cvar_Set("sv_paused", "1");
                 IN_Activate();
             }

@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // cl_scrn.c -- master for refresh, status bar, console, chat, notify, etc
 
 #include "client.h"
+#include "speedrun/timer.h"
 
 #define STAT_PICS       11
 #define STAT_MINUS      (STAT_PICS - 1)  // num frame for '-' stats digit
@@ -2018,6 +2019,54 @@ draw:
     SCR_ExecuteLayoutString(cl.layout);
 }
 
+static void SCR_DrawTimeString(
+        int x, int y, const char time_string[static SPEEDRUN_TIME_LENGTH])
+{
+    const int SEPARATOR_WIDTH = 8;
+    const int DEFAULT_COLOR = 0;
+
+    int last_char = SPEEDRUN_TIME_LENGTH - 1;
+    while (time_string[last_char] == '\0')
+    {
+        last_char -= 1;
+    }
+
+    for (int i = last_char; i >= 0; i -= 1)
+    {
+        if (isdigit(time_string[i]))
+        {
+            x -= DIGIT_WIDTH;
+            HUD_DrawNumber(x, y, DEFAULT_COLOR, 1, time_string[i] - '0');
+        }
+        else
+        {
+            x -= SEPARATOR_WIDTH;
+        }
+    }
+}
+
+static int SCR_DrawSpeedrunTimer(int x, int y)
+{
+    const int TIMER_HEIGHT = 25;
+    if ( cl_drawSpeedrunTotalTimer->integer > 0 )
+    {
+        char total_time_string[SPEEDRUN_TIME_LENGTH];
+        const int total_time_accuracy = cl_drawSpeedrunTotalTimer->integer - 1;
+        SpeedrunGetTotalTimeString(total_time_accuracy, total_time_string);
+        SCR_DrawTimeString(x, y, total_time_string);
+        y += TIMER_HEIGHT;
+    }
+    if ( cl_drawSpeedrunLevelTimer->integer > 0 )
+    {
+        char level_time_string[SPEEDRUN_TIME_LENGTH];
+        const int level_time_accuracy = cl_drawSpeedrunLevelTimer->integer - 1;
+        SpeedrunGetLevelTimeString(level_time_accuracy, level_time_string);
+        SCR_DrawTimeString(x, y, level_time_string);
+        y += TIMER_HEIGHT;
+    }
+    return y;
+}
+
 static void SCR_Draw2D(void)
 {
     if (scr_draw2d->integer <= 0)
@@ -2030,6 +2079,9 @@ static void SCR_Draw2D(void)
 
     scr.hud_height *= scr.hud_scale;
     scr.hud_width *= scr.hud_scale;
+
+    const int MARGIN = 5;
+    SCR_DrawSpeedrunTimer(scr.hud_width - MARGIN, MARGIN);
 
     // crosshair has its own color and alpha
     SCR_DrawCrosshair();

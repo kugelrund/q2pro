@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // sv_game.c -- interface to the game dll
 
 #include "server.h"
+#include "speedrun/timer.h"
 
 game_export_t    *ge;
 
@@ -922,6 +923,12 @@ void SV_InitGameProgs(void)
     import.DebugGraph = PF_DebugGraph;
     import.SetAreaPortalState = PF_SetAreaPortalState;
     import.AreasConnected = PF_AreasConnected;
+
+    import.SpeedrunUnpauseTimer = SpeedrunUnpauseTimer;
+    import.SpeedrunPauseTimer = SpeedrunPauseTimer;
+    import.SpeedrunLevelFinished = SpeedrunLevelFinished;
+    import.SpeedrunGetTotalTimeString = SpeedrunGetTotalTimeString;
+    import.SpeedrunGetLevelTimeString = SpeedrunGetLevelTimeString;
 
     ge = entry(&import);
     if (!ge) {

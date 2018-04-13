@@ -185,6 +185,8 @@ OBJS_c := \
     src/server/main.o       \
     src/server/user.o       \
     src/server/world.o      \
+    src/speedrun/timer.o    \
+    src/speedrun/timer_helper.o
 
 OBJS_s := \
     $(COMMON_OBJS)  \
@@ -196,7 +198,9 @@ OBJS_s := \
     src/server/send.o       \
     src/server/main.o       \
     src/server/user.o       \
-    src/server/world.o
+    src/server/world.o      \
+    src/speedrun/timer.o    \
+    src/speedrun/timer_helper.o
 
 OBJS_g := \
     src/shared/shared.o         \
@@ -214,6 +218,7 @@ OBJS_g := \
     src/baseq2/g_ptrs.o         \
     src/baseq2/g_save.o         \
     src/baseq2/g_spawn.o        \
+    src/baseq2/g_speedrun.o     \
     src/baseq2/g_svcmds.o       \
     src/baseq2/g_target.o       \
     src/baseq2/g_trigger.o      \
