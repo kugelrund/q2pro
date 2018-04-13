@@ -197,9 +197,9 @@ void SV_SpawnServer(mapcmd_t *cmd)
 
         // set inline model names
         Q_concat(sv.configstrings[CS_MODELS + 1], MAX_QPATH, "maps/", cmd->server, ".bsp", NULL);
-        for (i = 1; i < sv.cm.cache->nummodels; i++) {
-            sprintf(sv.configstrings[CS_MODELS + 1 + i], "*%d", i);
-        }
+		for (i = 1; i < sv.cm.cache->nummodels; i++) {
+			sprintf(sv.configstrings[CS_MODELS + 1 + i], "*%d", i);
+		}
 
         entitystring = sv.entitystring ? sv.entitystring : sv.cm.cache->entitystring;
     } else {
@@ -289,8 +289,8 @@ qboolean SV_ParseMapCmd(mapcmd_t *cmd)
 
     // if there is a + in the map, set nextserver to the remainder.
     // we go directly to nextserver because we don't support cinematics.
-    ch = strchr(s, '+');
-    if (ch) {
+
+	while ((ch = strchr(s, '+'))) {
         s = ch + 1;
 
         // skip the end-of-unit flag if necessary

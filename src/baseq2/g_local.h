@@ -288,7 +288,7 @@ typedef struct {
     qboolean    autosaved;
 } game_locals_t;
 
-
+#ifndef THISGAME
 //
 // this structure is cleared as each map is entered
 // it is read/written to the level.sav file for savegames
@@ -333,7 +333,7 @@ typedef struct {
 
     int         power_cubes;        // ugly necessity for coop
 } level_locals_t;
-
+#endif
 
 // spawn_temp_t is only used to hold entity field values that
 // can be set from the editor, but aren't actualy present
