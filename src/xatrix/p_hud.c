@@ -1,4 +1,5 @@
 #include "g_local.h"
+#include "g_speedrun.h"
 
 
 
@@ -67,6 +68,10 @@ void BeginIntermission (edict_t *targ)
 
 	if (level.intermissiontime)
 		return;		// already activated
+
+	gi.SpeedrunPauseTimer();
+	gi.SpeedrunLevelFinished();
+	PrintSpeedrunTimer();
 
 	game.autosaved = qfalse;
 

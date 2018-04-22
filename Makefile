@@ -298,6 +298,7 @@ OBJS_r := \
     src/rogue/g_phys.o          \
     src/rogue/g_save.o          \
     src/rogue/g_spawn.o         \
+    src/rogue/g_speedrun.o      \
     src/rogue/g_sphere.o        \
     src/rogue/g_svcmds.o        \
     src/rogue/g_target.o        \
@@ -354,6 +355,7 @@ OBJS_x := \
     src/xatrix/g_phys.o         \
     src/xatrix/g_save.o         \
     src/xatrix/g_spawn.o        \
+    src/xatrix/g_speedrun.o     \
     src/xatrix/g_svcmds.o       \
     src/xatrix/g_target.o       \
     src/xatrix/g_trigger.o      \

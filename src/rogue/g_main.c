@@ -85,6 +85,7 @@ void G_RunFrame (void);
 
 void ShutdownGame (void)
 {
+	gi.SpeedrunPauseTimer();
 	gi.dprintf ("==== ShutdownGame ====\n");
 	gi.FreeTags (TAG_LEVEL);
 	gi.FreeTags (TAG_GAME);

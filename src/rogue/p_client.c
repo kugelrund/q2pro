@@ -1,4 +1,5 @@
 #include "g_local.h"
+#include "g_speedrun.h"
 #include "m_player.h"
 
 void ClientUserinfoChanged (edict_t *ent, char *userinfo);
@@ -1921,6 +1922,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	edict_t	*other;
 	int		i, j;
 	pmove_t	pm;
+
+	SpeedrunRunTimer(ent->client);
 
 	level.current_entity = ent;
 	client = ent->client;
