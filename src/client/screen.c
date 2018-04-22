@@ -514,8 +514,8 @@ LAGOMETER
 #define LAG_WIDTH   48
 #define LAG_HEIGHT  48
 
-#define LAG_CRIT_BIT    (1 << 31)
-#define LAG_WARN_BIT    (1 << 30)
+#define LAG_CRIT_BIT    (1U << 31)
+#define LAG_WARN_BIT    (1U << 30)
 
 #define LAG_BASE    0xD5
 #define LAG_WARN    0xDC
@@ -1340,7 +1340,7 @@ void SCR_Init(void)
     scr_demobar = Cvar_Get("scr_demobar", "1", 0);
     scr_font = Cvar_Get("scr_font", "conchars", 0);
     scr_font->changed = scr_font_changed;
-    scr_scale = Cvar_Get("scr_scale", "1", 0);
+    scr_scale = Cvar_Get("scr_scale", "0", 0);
     scr_scale->changed = scr_scale_changed;
     scr_crosshair = Cvar_Get("crosshair", "0", CVAR_ARCHIVE);
     scr_crosshair->changed = scr_crosshair_changed;

@@ -291,6 +291,7 @@ static void BuildList(void)
                            FS_SEARCH_DIRSONLY, &numDirs);
     demolist = FS_ListFiles(m_demos.browse, DEMO_EXTENSIONS, flags |
                             FS_SEARCH_EXTRAINFO, &numDemos);
+    numDemos = min(numDemos, MAX_LISTED_FILES - numDirs);
 
     // alloc entries
     m_demos.list.items = UI_Malloc(sizeof(demoEntry_t *) * (numDirs + numDemos + 1));
@@ -605,6 +606,7 @@ static void Expose(menuFrameWork_t *self)
 
 static void Free(menuFrameWork_t *self)
 {
+    Z_Free(m_demos.menu.items);
     memset(&m_demos, 0, sizeof(m_demos));
 }
 

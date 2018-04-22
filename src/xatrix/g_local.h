@@ -713,6 +713,10 @@ void BecomeExplosion1(edict_t *self);
 void ThrowHeadACID (edict_t *self, char *gibname, int damage, int type);
 void ThrowGibACID (edict_t *self, char *gibname, int damage, int type);
 
+#define CLOCK_MESSAGE_SIZE  16
+void func_clock_think(edict_t *self);
+void func_clock_use(edict_t *self, edict_t *other, edict_t *activator);
+
 //
 // g_ai.c
 //

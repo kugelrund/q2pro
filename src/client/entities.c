@@ -93,9 +93,9 @@ entity_update_old(centity_t *ent, const entity_state_t *state, const vec_t *orig
         || state->modelindex4 != ent->current.modelindex4
         || event == EV_PLAYER_TELEPORT
         || event == EV_OTHER_TELEPORT
-        || abs(origin[0] - ent->current.origin[0]) > 512
-        || abs(origin[1] - ent->current.origin[1]) > 512
-        || abs(origin[2] - ent->current.origin[2]) > 512
+        || fabs(origin[0] - ent->current.origin[0]) > 512
+        || fabs(origin[1] - ent->current.origin[1]) > 512
+        || fabs(origin[2] - ent->current.origin[2]) > 512
         || cl_nolerp->integer == 1) {
         // some data changes will force no lerping
         ent->trailcount = 1024;     // for diminishing rocket / grenade trails
@@ -936,7 +936,7 @@ static void CL_AddViewWeapon(void)
         return;
     }
 
-    if (info_hand->integer == 2) {
+    if (info_hand->integer == 2 && cl_gun->integer == 1) {
         return;
     }
 
@@ -985,7 +985,7 @@ static void CL_AddViewWeapon(void)
     }
 
     gun.flags = RF_MINLIGHT | RF_DEPTHHACK | RF_WEAPONMODEL;
-    if (info_hand->integer == 1) {
+    if ((info_hand->integer == 1 && cl_gun->integer == 1) || cl_gun->integer == 3) {
         gun.flags |= RF_LEFTHAND;
     }
 
@@ -1263,9 +1263,7 @@ void CL_AddEntities(void)
 #if USE_DLIGHTS
     CL_AddDLights();
 #endif
-#if USE_LIGHTSTYLES
     CL_AddLightStyles();
-#endif
     LOC_AddLocationsToScene();
 }
 

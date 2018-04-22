@@ -58,15 +58,17 @@ static qboolean StringToFilter (char *s, ipfilter_t *f)
 {
 	char	num[128];
 	int		i, j;
-	byte	b[4];
-	byte	m[4];
-	
+	union {
+		byte bytes[4];
+		unsigned u32;
+	} b, m;
+
 	for (i=0 ; i<4 ; i++)
 	{
-		b[i] = 0;
-		m[i] = 0;
+		b.bytes[i] = 0;
+		m.bytes[i] = 0;
 	}
-	
+
 	for (i=0 ; i<4 ; i++)
 	{
 		if (*s < '0' || *s > '9')
@@ -74,25 +76,25 @@ static qboolean StringToFilter (char *s, ipfilter_t *f)
 			gi.cprintf(NULL, PRINT_HIGH, "Bad filter address: %s\n", s);
 			return qfalse;
 		}
-		
+
 		j = 0;
 		while (*s >= '0' && *s <= '9')
 		{
 			num[j++] = *s++;
 		}
 		num[j] = 0;
-		b[i] = atoi(num);
-		if (b[i] != 0)
-			m[i] = 255;
+		b.bytes[i] = atoi(num);
+		if (b.bytes[i] != 0)
+			m.bytes[i] = 255;
 
 		if (!*s)
 			break;
 		s++;
 	}
-	
-	f->mask = *(unsigned *)m;
-	f->compare = *(unsigned *)b;
-	
+
+	f->mask = m.u32;
+	f->compare = b.u32;
+
 	return qtrue;
 }
 
@@ -105,23 +107,26 @@ qboolean SV_FilterPacket (char *from)
 {
 	int		i;
 	unsigned	in;
-	byte m[4];
+	union {
+		byte b[4];
+		unsigned u32;
+	} m;
 	char *p;
 
 	i = 0;
 	p = from;
 	while (*p && i < 4) {
-		m[i] = 0;
+		m.b[i] = 0;
 		while (*p >= '0' && *p <= '9') {
-			m[i] = m[i]*10 + (*p - '0');
+			m.b[i] = m.b[i]*10 + (*p - '0');
 			p++;
 		}
 		if (!*p || *p == ':')
 			break;
 		i++, p++;
 	}
-	
-	in = *(unsigned *)m;
+
+	in = m.u32;
 
 	for (i=0 ; i<numipfilters ; i++)
 		if ( (in & ipfilters[i].mask) == ipfilters[i].compare)
@@ -201,13 +206,16 @@ SV_ListIP_f
 void SVCmd_ListIP_f (void)
 {
 	int		i;
-	byte	b[4];
+	union {
+		byte b[4];
+		unsigned u32;
+	} b;
 
 	gi.cprintf (NULL, PRINT_HIGH, "Filter list:\n");
 	for (i=0 ; i<numipfilters ; i++)
 	{
-		*(unsigned *)b = ipfilters[i].compare;
-		gi.cprintf (NULL, PRINT_HIGH, "%3i.%3i.%3i.%3i\n", b[0], b[1], b[2], b[3]);
+		b.u32 = ipfilters[i].compare;
+		gi.cprintf (NULL, PRINT_HIGH, "%3i.%3i.%3i.%3i\n", b.b[0], b.b[1], b.b[2], b.b[3]);
 	}
 }
 
@@ -220,7 +228,10 @@ void SVCmd_WriteIP_f (void)
 {
 	FILE	*f;
 	char	name[MAX_OSPATH];
-	byte	b[4];
+	union {
+		byte b[4];
+		unsigned u32;
+	} b;
 	int		i;
 	cvar_t	*game;
 
@@ -239,15 +250,15 @@ void SVCmd_WriteIP_f (void)
 		gi.cprintf (NULL, PRINT_HIGH, "Couldn't open %s\n", name);
 		return;
 	}
-	
+
 	fprintf(f, "set filterban %d\n", (int)filterban->value);
 
 	for (i=0 ; i<numipfilters ; i++)
 	{
-		*(unsigned *)b = ipfilters[i].compare;
-		fprintf (f, "sv addip %i.%i.%i.%i\n", b[0], b[1], b[2], b[3]);
+		b.u32 = ipfilters[i].compare;
+		fprintf(f, "sv addip %i.%i.%i.%i\n", b.b[0], b.b[1], b.b[2], b.b[3]);
 	}
-	
+
 	fclose (f);
 }
 

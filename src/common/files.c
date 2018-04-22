@@ -2092,7 +2092,7 @@ static pack_t *load_pak_file(const char *packfile)
     }
 
     header.dirlen = LittleLong(header.dirlen);
-    if (header.dirlen > LONG_MAX || header.dirlen % sizeof(dpackfile_t)) {
+    if (header.dirlen % sizeof(dpackfile_t)) {
         Com_Printf("%s has bad directory length\n", packfile);
         goto fail;
     }
@@ -2108,10 +2108,12 @@ static pack_t *load_pak_file(const char *packfile)
     }
 
     header.dirofs = LittleLong(header.dirofs);
+#ifndef _LP64
     if (header.dirofs > LONG_MAX - header.dirlen) {
         Com_Printf("%s has bad directory offset\n", packfile);
         goto fail;
     }
+#endif
     if (fseek(fp, (long)header.dirofs, SEEK_SET)) {
         Com_Printf("Seeking to directory failed on %s\n", packfile);
         goto fail;
@@ -2125,10 +2127,12 @@ static pack_t *load_pak_file(const char *packfile)
     for (i = 0, dfile = info; i < num_files; i++, dfile++) {
         dfile->filepos = LittleLong(dfile->filepos);
         dfile->filelen = LittleLong(dfile->filelen);
+#ifndef _LP64
         if (dfile->filelen > LONG_MAX || dfile->filepos > LONG_MAX - dfile->filelen) {
             Com_Printf("%s has bad directory structure\n", packfile);
             goto fail;
         }
+#endif
         dfile->name[sizeof(dfile->name) - 1] = 0;
         names_len += strlen(dfile->name) + 1;
     }
@@ -2461,8 +2465,8 @@ static void q_printf(2, 3) add_game_dir(unsigned mode, const char *fmt, ...)
     va_list         argptr;
     searchpath_t    *search;
     pack_t          *pack;
-    void            *files[MAX_LISTED_FILES];
-    int             i, count;
+    listfiles_t     list;
+    int             i;
     char            path[MAX_OSPATH];
     size_t          len;
 
@@ -2487,23 +2491,22 @@ static void q_printf(2, 3) add_game_dir(unsigned mode, const char *fmt, ...)
     search->next = fs_searchpaths;
     fs_searchpaths = search;
 
-#if USE_ZLIB
-#define PAK_EXT  ".pak;.pkz"
-#else
-#define PAK_EXT  ".pak"
-#endif
-
     // add any pack files
-    count = 0;
-    Sys_ListFiles_r(fs_gamedir, PAK_EXT, 0, 0, &count, files, 0);
-    if (!count) {
+    memset(&list, 0, sizeof(list));
+#if USE_ZLIB
+    list.filter = ".pak;.pkz";
+#else
+    list.filter = ".pak";
+#endif
+    Sys_ListFiles_r(&list, fs_gamedir, 0);
+    if (!list.count) {
         return;
     }
 
-    qsort(files, count, sizeof(files[0]), pakcmp);
+    qsort(list.files, list.count, sizeof(list.files[0]), pakcmp);
 
-    for (i = 0; i < count; i++) {
-        len = Q_concat(path, sizeof(path), fs_gamedir, "/", files[i], NULL);
+    for (i = 0; i < list.count; i++) {
+        len = Q_concat(path, sizeof(path), fs_gamedir, "/", list.files[i], NULL);
         if (len >= sizeof(path)) {
             Com_EPrintf("%s: refusing oversize path\n", __func__);
             continue;
@@ -2525,9 +2528,10 @@ static void q_printf(2, 3) add_game_dir(unsigned mode, const char *fmt, ...)
         fs_searchpaths = search;
     }
 
-    for (i = 0; i < count; i++) {
-        Z_Free(files[i]);
+    for (i = 0; i < list.count; i++) {
+        Z_Free(list.files[i]);
     }
+    Z_Free(list.files);
 }
 
 /*
@@ -2659,16 +2663,20 @@ void **FS_ListFiles(const char *path,
 {
     searchpath_t    *search;
     packfile_t      *file;
-    void            *files[MAX_LISTED_FILES], *info;
-    int             i, j, count, total;
+    void            *info;
+    int             i, j, total;
     char            normalized[MAX_OSPATH], buffer[MAX_OSPATH];
-    void            **list;
+    listfiles_t     list;
     size_t          len, pathlen;
     char            *s, *p;
     int             valid;
 
-    count = 0;
+    memset(&list, 0, sizeof(list));
     valid = PATH_NOT_CHECKED;
+
+    if (count_p) {
+        *count_p = 0;
+    }
 
     if (!path) {
         path = "";
@@ -2677,7 +2685,7 @@ void **FS_ListFiles(const char *path,
         // normalize the path
         pathlen = FS_NormalizePathBuffer(normalized, path, sizeof(normalized));
         if (pathlen >= sizeof(normalized)) {
-            goto fail;
+            return NULL;
         }
 
         path = normalized;
@@ -2685,7 +2693,7 @@ void **FS_ListFiles(const char *path,
 
     // can't mix directory search with other flags
     if ((flags & FS_SEARCH_DIRSONLY) && (flags & FS_SEARCH_MASK & ~FS_SEARCH_DIRSONLY)) {
-        goto fail;
+        return NULL;
     }
 
     for (search = fs_searchpaths; search; search = search->next) {
@@ -2752,12 +2760,12 @@ void **FS_ListFiles(const char *path,
                         continue;   // does not have directory component
                     }
                     *p = 0;
-                    for (j = 0; j < count; j++) {
-                        if (!FS_pathcmp(files[j], s)) {
+                    for (j = 0; j < list.count; j++) {
+                        if (!FS_pathcmp(list.files[j], s)) {
                             break;
                         }
                     }
-                    if (j != count) {
+                    if (j != list.count) {
                         continue;   // already listed this directory
                     }
                 }
@@ -2783,9 +2791,10 @@ void **FS_ListFiles(const char *path,
                     info = FS_CopyString(s);
                 }
 
-                files[count++] = info;
+                list.files = FS_ReallocList(list.files, list.count + 1);
+                list.files[list.count++] = info;
 
-                if (count >= MAX_LISTED_FILES) {
+                if (list.count >= MAX_LISTED_FILES) {
                     break;
                 }
             }
@@ -2817,57 +2826,47 @@ void **FS_ListFiles(const char *path,
                 len += pathlen + 1;
             }
 
-            Sys_ListFiles_r(s, filter, flags, len, &count, files, 0);
+            list.filter = filter;
+            list.flags = flags;
+            list.baselen = len;
+            Sys_ListFiles_r(&list, s, 0);
         }
 
-        if (count >= MAX_LISTED_FILES) {
+        if (list.count >= MAX_LISTED_FILES) {
             break;
         }
     }
 
-    if (!count) {
-fail:
-        if (count_p) {
-            *count_p = 0;
-        }
+    if (!list.count) {
         return NULL;
     }
 
     if (flags & FS_SEARCH_EXTRAINFO) {
         // TODO
-        qsort(files, count, sizeof(files[0]), infocmp);
-        total = count;
+        qsort(list.files, list.count, sizeof(list.files[0]), infocmp);
+        total = list.count;
     } else {
         // sort alphabetically
-        qsort(files, count, sizeof(files[0]), alphacmp);
+        qsort(list.files, list.count, sizeof(list.files[0]), alphacmp);
 
         // remove duplicates
-        total = 1;
-        for (i = 1; i < count; i++) {
-            if (!FS_pathcmp(files[i - 1], files[i])) {
-                Z_Free(files[i - 1]);
-                files[i - 1] = NULL;
-            } else {
-                total++;
+        for (i = total = 0; i < list.count; i++, total++) {
+            info = list.files[i];
+            while (i + 1 < list.count && !FS_pathcmp(list.files[i + 1], info)) {
+                Z_Free(list.files[++i]);
             }
+            list.files[total] = info;
         }
     }
-
-    list = FS_Malloc(sizeof(void *) * (total + 1));
-
-    total = 0;
-    for (i = 0; i < count; i++) {
-        if (files[i]) {
-            list[total++] = files[i];
-        }
-    }
-    list[total] = NULL;
 
     if (count_p) {
         *count_p = total;
     }
 
-    return list;
+    list.files = FS_ReallocList(list.files, total + 1);
+    list.files[total] = NULL;
+
+    return list.files;
 }
 
 /*
@@ -2904,6 +2903,7 @@ void FS_File_g(const char *path, const char *ext, unsigned flags, genctx_t *ctx)
     for (i = 0; i < numFiles; i++) {
         s = list[i];
         if (ctx->count < ctx->size && !strncmp(s, ctx->partial, ctx->length)) {
+            ctx->matches = Z_Realloc(ctx->matches, ALIGN(ctx->count + 1, MIN_MATCHES) * sizeof(char *));
             ctx->matches[ctx->count++] = s;
         } else {
             Z_Free(s);
@@ -2916,23 +2916,14 @@ void FS_File_g(const char *path, const char *ext, unsigned flags, genctx_t *ctx)
 static void print_file_list(const char *path, const char *ext, unsigned flags)
 {
     void    **list;
-    int     i, listed, total;
+    int     i, total;
 
     list = FS_ListFiles(path, ext, flags, &total);
-
-    // don't list too many files to avoid console spam
-    listed = total > 128 ? 128 : total;
-    for (i = 0; i < listed; i++) {
+    for (i = 0; i < total; i++) {
         Com_Printf("%s\n", (char *)list[i]);
     }
-
+    Com_Printf("%i files listed\n", total);
     FS_FreeList(list);
-
-    if (listed == total) {
-        Com_Printf("%i files listed\n", listed);
-    } else {
-        Com_Printf("%i files listed (%d files more)\n", listed, total - listed);
-    }
 }
 
 /*

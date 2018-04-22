@@ -77,8 +77,6 @@ void Cbuf_Execute(cmdbuf_t *buf);
 // Normally called once per frame, but may be explicitly invoked.
 // Do not call inside a command function!
 
-char *Cbuf_Alloc(cmdbuf_t *buf, size_t len);
-
 //===========================================================================
 
 /*
@@ -177,9 +175,8 @@ char    *Cmd_ArgsFrom(int from);
 char    *Cmd_RawArgsFrom(int from);
 size_t  Cmd_ArgsBuffer(char *buffer, size_t size);
 size_t  Cmd_ArgvBuffer(int arg, char *buffer, size_t size);
-size_t  Cmd_ArgOffset(int arg);
-int     Cmd_FindArgForOffset(size_t offset);
-size_t  Cmd_WhiteSpaceTail(void);
+int     Cmd_ArgOffset(int arg);
+int     Cmd_FindArgForOffset(int offset);
 char    *Cmd_RawString(void);
 void    Cmd_Shift(void);
 // The functions that execute commands get their parameters with these

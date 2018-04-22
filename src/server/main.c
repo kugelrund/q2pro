@@ -585,7 +585,7 @@ static void SVC_GetChallenge(void)
         }
     }
 
-    challenge = ((rand() << 16) | rand()) & 0x7fffffff;
+    challenge = (((unsigned)rand() << 16) | rand()) & 0x7fffffff;
     if (i == MAX_CHALLENGES) {
         // overwrite the oldest
         svs.challenges[oldest].challenge = challenge;
@@ -1939,10 +1939,11 @@ void SV_UserinfoChanged(client_t *cl)
             MVD_GameClientNameChanged(cl->edict, name);
         } else
 #endif
-            if (sv_show_name_changes->integer) {
-                SV_BroadcastPrintf(PRINT_HIGH, "%s changed name to %s\n",
-                                   cl->name, name);
-            }
+        if (sv_show_name_changes->integer > 1 ||
+            (sv_show_name_changes->integer == 1 && cl->state == cs_spawned)) {
+            SV_BroadcastPrintf(PRINT_HIGH, "%s changed name to %s\n",
+                               cl->name, name);
+        }
     }
     memcpy(cl->name, name, len + 1);
 

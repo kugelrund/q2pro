@@ -1,6 +1,10 @@
 ### Q2PRO Makefile ###
 
--include .config
+ifneq ($(CONFIG_FILE),)
+    include $(CONFIG_FILE)
+else
+    -include .config
+endif
 
 ifdef CONFIG_WINDOWS
     CPU ?= x86
@@ -35,9 +39,9 @@ LIBS ?=
 
 CFLAGS_s := -iquote./inc
 CFLAGS_c := -iquote./inc
-CFLAGS_g := -iquote./inc -fno-strict-aliasing
-CFLAGS_r := -iquote./inc -fno-strict-aliasing
-CFLAGS_x := -iquote./inc -fno-strict-aliasing
+CFLAGS_g := -iquote./inc
+CFLAGS_r := -iquote./inc
+CFLAGS_x := -iquote./inc
 
 RCFLAGS_s :=
 RCFLAGS_c :=
@@ -440,9 +444,6 @@ ifndef CONFIG_NO_MENUS
     OBJS_c += src/client/ui/servers.o
     OBJS_c += src/client/ui/ui.o
 endif
-
-# Light styles are always enabled
-CFLAGS_c += -DUSE_LIGHTSTYLES=1
 
 ifndef CONFIG_NO_DYNAMIC_LIGHTS
     CFLAGS_c += -DUSE_DLIGHTS=1

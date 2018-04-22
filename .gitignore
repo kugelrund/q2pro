@@ -1,7 +1,9 @@
-.config*
-.q2pro/
-.q2proded/
-.baseq2/
-.rogue/
-.xatrix/
-build
+/.config*
+/.q2pro/
+/.q2proded/
+/.baseq2/
+/.rogue/
+/.xatrix/
+/build/
+/tags
+/TAGS

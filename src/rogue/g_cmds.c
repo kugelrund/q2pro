@@ -139,7 +139,7 @@ void Cmd_Give_f (edict_t *ent)
 	qboolean	give_all;
 	edict_t		*it_ent;
 
-	if (deathmatch->value && !sv_cheats->value)
+	if ((deathmatch->value || coop->value) && !sv_cheats->value)
 	{
 		gi.cprintf (ent, PRINT_HIGH, "You must run the server with '+set cheats 1' to enable this command.\n");
 		return;
@@ -302,9 +302,7 @@ argv(0) god
 */
 void Cmd_God_f (edict_t *ent)
 {
-	char	*msg;
-
-	if (deathmatch->value && !sv_cheats->value)
+	if ((deathmatch->value || coop->value) && !sv_cheats->value)
 	{
 		gi.cprintf (ent, PRINT_HIGH, "You must run the server with '+set cheats 1' to enable this command.\n");
 		return;
@@ -312,11 +310,9 @@ void Cmd_God_f (edict_t *ent)
 
 	ent->flags ^= FL_GODMODE;
 	if (!(ent->flags & FL_GODMODE) )
-		msg = "godmode OFF\n";
+		gi.cprintf (ent, PRINT_HIGH, "godmode OFF\n");
 	else
-		msg = "godmode ON\n";
-
-	gi.cprintf (ent, PRINT_HIGH, msg);
+		gi.cprintf (ent, PRINT_HIGH, "godmode ON\n");
 }
 
 
@@ -331,9 +327,7 @@ argv(0) notarget
 */
 void Cmd_Notarget_f (edict_t *ent)
 {
-	char	*msg;
-
-	if (deathmatch->value && !sv_cheats->value)
+	if ((deathmatch->value || coop->value) && !sv_cheats->value)
 	{
 		gi.cprintf (ent, PRINT_HIGH, "You must run the server with '+set cheats 1' to enable this command.\n");
 		return;
@@ -341,11 +335,9 @@ void Cmd_Notarget_f (edict_t *ent)
 
 	ent->flags ^= FL_NOTARGET;
 	if (!(ent->flags & FL_NOTARGET) )
-		msg = "notarget OFF\n";
+		gi.cprintf (ent, PRINT_HIGH, "notarget OFF\n");
 	else
-		msg = "notarget ON\n";
-
-	gi.cprintf (ent, PRINT_HIGH, msg);
+		gi.cprintf (ent, PRINT_HIGH, "notarget ON\n");
 }
 
 
@@ -358,9 +350,7 @@ argv(0) noclip
 */
 void Cmd_Noclip_f (edict_t *ent)
 {
-	char	*msg;
-
-	if (deathmatch->value && !sv_cheats->value)
+	if ((deathmatch->value || coop->value) && !sv_cheats->value)
 	{
 		gi.cprintf (ent, PRINT_HIGH, "You must run the server with '+set cheats 1' to enable this command.\n");
 		return;
@@ -369,15 +359,13 @@ void Cmd_Noclip_f (edict_t *ent)
 	if (ent->movetype == MOVETYPE_NOCLIP)
 	{
 		ent->movetype = MOVETYPE_WALK;
-		msg = "noclip OFF\n";
+		gi.cprintf (ent, PRINT_HIGH, "noclip OFF\n");
 	}
 	else
 	{
 		ent->movetype = MOVETYPE_NOCLIP;
-		msg = "noclip ON\n";
+		gi.cprintf (ent, PRINT_HIGH, "noclip ON\n");
 	}
-
-	gi.cprintf (ent, PRINT_HIGH, msg);
 }
 
 
