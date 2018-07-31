@@ -21,7 +21,7 @@ void PrintSpeedrunTimer()
 	           total_time_string, level_time_string);
 }
 
-void SpeedrunRunTimer(const gclient_t *client)
+void SpeedrunRunTimer()
 {
 	if (!level.intermissiontime)
 	{

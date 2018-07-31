@@ -55,10 +55,8 @@ void CheckSpeedrunFinished(const gclient_t *client)
     }
 }
 
-void SpeedrunRunTimer(const gclient_t *client)
+void SpeedrunRunTimer()
 {
-    CheckSpeedrunFinished(client);
-
     if (!level.intermissiontime && !speedrun_finished)
     {
         gi.SpeedrunUnpauseTimer();
