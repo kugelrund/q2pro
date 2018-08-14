@@ -143,6 +143,9 @@ sv_locked::
     Locks the server, preventing new clients from connecting. Default value is
     0 (server unlocked).
 
+sv_force_rate::
+    When enabled, do not enforce any rate limits.
+
 sv_lan_force_rate::
     When enabled, do not enforce any rate limits on clients whose IP is from
     private address space (127.x.x.x, 10.x.x.x, 192.168.x.x, 172.16.x.x).

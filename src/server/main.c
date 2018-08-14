@@ -68,6 +68,7 @@ cvar_t  *sv_public;            // should heartbeats be sent
 cvar_t  *sv_debug;
 cvar_t  *sv_pad_packets;
 #endif
+cvar_t  *sv_force_rate;
 cvar_t  *sv_lan_force_rate;
 cvar_t  *sv_calcpings_method;
 cvar_t  *sv_changemapcmd;
@@ -1967,6 +1968,10 @@ void SV_UserinfoChanged(client_t *cl)
         cl->rate = 0;
     }
 
+    if (sv_force_rate->integer) {
+        cl->rate = 0;
+    }
+
     // msg command
     val = Info_ValueForKey(cl->userinfo, "msg");
     if (*val) {
@@ -2105,6 +2110,7 @@ void SV_Init(void)
     sv_debug = Cvar_Get("sv_debug", "0", 0);
     sv_pad_packets = Cvar_Get("sv_pad_packets", "0", 0);
 #endif
+    sv_force_rate = Cvar_Get("sv_force_rate", "0", CVAR_LATCH);
     sv_lan_force_rate = Cvar_Get("sv_lan_force_rate", "0", CVAR_LATCH);
     sv_calcpings_method = Cvar_Get("sv_calcpings_method", "2", 0);
     sv_changemapcmd = Cvar_Get("sv_changemapcmd", "", 0);
