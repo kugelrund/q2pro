@@ -503,7 +503,7 @@ Takes a key/value pair and sets the binary values
 in an edict
 ===============
 */
-static qboolean ED_ParseField(const spawn_field_t *fields, const char *key, const char *value, byte *b)
+static bool ED_ParseField(const spawn_field_t *fields, const char *key, const char *value, byte *b)
 {
 	const spawn_field_t *f;
 	float   v;
@@ -542,10 +542,10 @@ static qboolean ED_ParseField(const spawn_field_t *fields, const char *key, cons
 			default:
 				break;
 			}
-			return qtrue;
+			return true;
 		}
 	}
-	return qfalse;
+	return false;
 }
 
 /*
@@ -558,10 +558,10 @@ ed should be a properly initialized empty edict.
 */
 void ED_ParseEdict(const char **data, edict_t *ent)
 {
-	qboolean    init;
+	bool    	init;
 	char        *key, *value;
 
-	init = qfalse;
+	init = false;
 	memset(&st, 0, sizeof(st));
 
 	// go through all the dictionary pairs
@@ -581,7 +581,7 @@ void ED_ParseEdict(const char **data, edict_t *ent)
 		if (value[0] == '}')
 			gi.error("%s: closing brace without data", __func__);
 
-		init = qtrue;
+		init = true;
 
 		// keynames with a leading underscore are used for utility comments,
 		// and are immediately discarded by quake
@@ -735,8 +735,8 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 	memset (&level, 0, sizeof(level));
 	memset (g_edicts, 0, game.maxentities * sizeof (g_edicts[0]));
 
-	strncpy (level.mapname, mapname, sizeof(level.mapname)-1);
-	strncpy (game.spawnpoint, spawnpoint, sizeof(game.spawnpoint)-1);
+	Q_strlcpy (level.mapname, mapname, sizeof(level.mapname));
+	Q_strlcpy (game.spawnpoint, spawnpoint, sizeof(game.spawnpoint));
 
 	// set client fields on player ents
 	for (i=0 ; i<game.maxclients ; i++)
@@ -1056,7 +1056,7 @@ void SP_worldspawn (edict_t *ent)
 {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->solid = SOLID_BSP;
-	ent->inuse = qtrue;			// since the world doesn't use G_Spawn()
+	ent->inuse = true;			// since the world doesn't use G_Spawn()
 	ent->s.modelindex = 1;		// world model is always index 1
 
 	//---------------
@@ -1075,10 +1075,10 @@ void SP_worldspawn (edict_t *ent)
 	if (ent->message && ent->message[0])
 	{
 		gi.configstring (CS_NAME, ent->message);
-		strncpy (level.level_name, ent->message, sizeof(level.level_name));
+		Q_strlcpy (level.level_name, ent->message, sizeof(level.level_name));
 	}
 	else
-		strncpy (level.level_name, level.mapname, sizeof(level.level_name));
+		Q_strlcpy (level.level_name, level.mapname, sizeof(level.level_name));
 
 	if (st.sky && st.sky[0])
 		gi.configstring (CS_SKY, st.sky);
@@ -1354,7 +1354,7 @@ edict_t *CreateGroundMonster (vec3_t origin, vec3_t angles, vec3_t entMins, vec3
 // PMM - this is used by the medic commander (possibly by the carrier) to find a good spawn point
 // if the startpoint is bad, try above the startpoint for a bit
 
-qboolean FindSpawnPoint (vec3_t startpoint, vec3_t mins, vec3_t maxs, vec3_t spawnpoint, float maxMoveUp)
+bool FindSpawnPoint (vec3_t startpoint, vec3_t mins, vec3_t maxs, vec3_t spawnpoint, float maxMoveUp)
 {
 	trace_t		tr;
 	//float		height;
@@ -1389,20 +1389,20 @@ qboolean FindSpawnPoint (vec3_t startpoint, vec3_t mins, vec3_t maxs, vec3_t spa
 //				else
 //					gi.dprintf("FindSpawnPoint: failed to find a point\n");
 
-			return qfalse;
+			return false;
 		} 
 		else
 		{
 //			if ((g_showlogic) && (g_showlogic->value))
 //				gi.dprintf ("FindSpawnPoint: %s -> %s\n", vtos (startpoint), vtos (tr.endpos));
 			VectorCopy (tr.endpos, spawnpoint);
-			return qtrue;
+			return true;
 		}
 	}
 	else
 	{
 		VectorCopy (startpoint, spawnpoint);
-		return qtrue;
+		return true;
 	}
 }
 
@@ -1416,13 +1416,13 @@ qboolean FindSpawnPoint (vec3_t startpoint, vec3_t mins, vec3_t maxs, vec3_t spa
 //
 // This is all fliers should need
 
-qboolean CheckSpawnPoint (vec3_t origin, vec3_t mins, vec3_t maxs)
+bool CheckSpawnPoint (vec3_t origin, vec3_t mins, vec3_t maxs)
 {
 	trace_t	tr;
 
 	if (!mins || !maxs || VectorCompare(mins, vec3_origin) || VectorCompare (maxs, vec3_origin))
 	{
-		return qfalse;
+		return false;
 	}
 
 	tr = gi.trace (origin, mins, maxs, origin, NULL, MASK_MONSTERSOLID);
@@ -1430,15 +1430,15 @@ qboolean CheckSpawnPoint (vec3_t origin, vec3_t mins, vec3_t maxs)
 	{
 //		if ((g_showlogic) && (g_showlogic->value))
 //			gi.dprintf("createmonster in wall. removing\n");
-		return qfalse;
+		return false;
 	}
 	if (tr.ent != world)
 	{
 //		if ((g_showlogic) && (g_showlogic->value))
 //			gi.dprintf("createmonster in entity %s\n", tr.ent->classname);
-		return qfalse;
+		return false;
 	}	
-	return qtrue;
+	return true;
 }
 
 //
@@ -1451,7 +1451,7 @@ qboolean CheckSpawnPoint (vec3_t origin, vec3_t mins, vec3_t maxs)
 //		3)	is the ground flat enough to walk on?
 //
 
-qboolean CheckGroundSpawnPoint (vec3_t origin, vec3_t entMins, vec3_t entMaxs, float height, float gravity)
+bool CheckGroundSpawnPoint (vec3_t origin, vec3_t entMins, vec3_t entMaxs, float height, float gravity)
 {
 	trace_t		tr;
 	vec3_t		start, stop;
@@ -1461,7 +1461,7 @@ qboolean CheckGroundSpawnPoint (vec3_t origin, vec3_t entMins, vec3_t entMaxs, f
 	float		mid, bottom;
 
 	if (!CheckSpawnPoint (origin, entMins, entMaxs))
-		return qfalse;
+		return false;
 
 	// FIXME - this is too conservative about angled surfaces
 
@@ -1516,7 +1516,7 @@ qboolean CheckGroundSpawnPoint (vec3_t origin, vec3_t entMins, vec3_t entMaxs, f
 		}
 
 		// if it passed all four above checks, we're done
-		return qtrue;
+		return true;
 
 realcheck:
 
@@ -1529,7 +1529,7 @@ realcheck:
 		tr = gi.trace (start, vec3_origin, vec3_origin, stop, NULL, MASK_MONSTERSOLID);
 
 		if (tr.fraction == 1.0)
-			return qfalse;
+			return false;
 		mid = bottom = tr.endpos[2];
 
 #ifdef ROGUE_GRAVITY
@@ -1576,7 +1576,7 @@ realcheck:
 					{
 //						if ((g_showlogic) && (g_showlogic->value))
 //							gi.dprintf ("spawn - rejecting due to uneven ground\n");
-						return qfalse;
+						return false;
 					}
 				}
 				else
@@ -1587,7 +1587,7 @@ realcheck:
 					{
 //						if ((g_showlogic) && (g_showlogic->value))
 //							gi.dprintf ("spawn - rejecting due to uneven ground\n");
-						return qfalse;
+						return false;
 					}
 				}
 #else
@@ -1595,12 +1595,12 @@ realcheck:
 					bottom = tr.endpos[2];
 				if (tr.fraction == 1.0 || mid - tr.endpos[2] > STEPSIZE)
 					{
-						return qfalse;
+						return false;
 					}
 #endif
 			}
 
-		return qtrue;		// we can land on it, it's ok
+		return true;		// we can land on it, it's ok
 	}
 
 	// otherwise, it's either water (bad) or not there (too far)
@@ -1615,7 +1615,7 @@ realcheck:
 //				gi.dprintf("groundmonster would fall too far\n");
 //	}
 
-	return qfalse;
+	return false;
 }
 
 void DetermineBBox (char *classname, vec3_t mins, vec3_t maxs)
@@ -1729,8 +1729,8 @@ void SpawnGrow_Spawn (vec3_t startpos, int size)
 
 void ThrowMoreStuff (edict_t *self, vec3_t point);
 void ThrowSmallStuff (edict_t *self, vec3_t point);
-void ThrowWidowGibLoc (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, qboolean fade);
-void ThrowWidowGibSized (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, int hitsound, qboolean fade);
+void ThrowWidowGibLoc (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, bool fade);
+void ThrowWidowGibSized (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, int hitsound, bool fade);
 
 void widowlegs_think (edict_t *self)
 {
@@ -1772,8 +1772,8 @@ void widowlegs_think (edict_t *self)
 		gi.multicast (point, MULTICAST_ALL);
 		ThrowSmallStuff (self, point);
 
-		ThrowWidowGibSized (self, "models/monsters/blackwidow/gib1/tris.md2", 80 + (int)(random()*20.0), GIB_METALLIC, point, 0, qtrue);
-		ThrowWidowGibSized (self, "models/monsters/blackwidow/gib2/tris.md2", 80 + (int)(random()*20.0), GIB_METALLIC, point, 0, qtrue);
+		ThrowWidowGibSized (self, "models/monsters/blackwidow/gib1/tris.md2", 80 + (int)(random()*20.0), GIB_METALLIC, point, 0, true);
+		ThrowWidowGibSized (self, "models/monsters/blackwidow/gib2/tris.md2", 80 + (int)(random()*20.0), GIB_METALLIC, point, 0, true);
 
 		VectorSet (offset, -1.04, -51.18, 7.04);
 		G_ProjectSource2 (self->s.origin, offset, f, r, u, point);
@@ -1783,9 +1783,9 @@ void widowlegs_think (edict_t *self)
 		gi.multicast (point, MULTICAST_ALL);
 		ThrowSmallStuff (self, point);
 
-		ThrowWidowGibSized (self, "models/monsters/blackwidow/gib1/tris.md2", 80 + (int)(random()*20.0), GIB_METALLIC, point, 0, qtrue);
-		ThrowWidowGibSized (self, "models/monsters/blackwidow/gib2/tris.md2", 80 + (int)(random()*20.0), GIB_METALLIC, point, 0, qtrue);
-		ThrowWidowGibSized (self, "models/monsters/blackwidow/gib3/tris.md2", 80 + (int)(random()*20.0), GIB_METALLIC, point, 0, qtrue);
+		ThrowWidowGibSized (self, "models/monsters/blackwidow/gib1/tris.md2", 80 + (int)(random()*20.0), GIB_METALLIC, point, 0, true);
+		ThrowWidowGibSized (self, "models/monsters/blackwidow/gib2/tris.md2", 80 + (int)(random()*20.0), GIB_METALLIC, point, 0, true);
+		ThrowWidowGibSized (self, "models/monsters/blackwidow/gib3/tris.md2", 80 + (int)(random()*20.0), GIB_METALLIC, point, 0, true);
 
 		G_FreeEdict (self);
 		return;

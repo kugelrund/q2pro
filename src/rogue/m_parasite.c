@@ -275,24 +275,24 @@ void parasite_pain (edict_t *self, edict_t *other, float kick, int damage)
 }
 
 
-//static qboolean parasite_drain_attack_ok (vec3_t start, vec3_t end)
-qboolean parasite_drain_attack_ok (vec3_t start, vec3_t end)
+//static bool parasite_drain_attack_ok (vec3_t start, vec3_t end)
+bool parasite_drain_attack_ok (vec3_t start, vec3_t end)
 {
 	vec3_t	dir, angles;
 
 	// check for max distance
 	VectorSubtract (start, end, dir);
 	if (VectorLength(dir) > 256)
-		return qfalse;
+		return false;
 
 	// check for min/max pitch
 	vectoangles (dir, angles);
 	if (angles[0] < -180)
 		angles[0] += 360;
 	if (fabs(angles[0]) > 30)
-		return qfalse;
+		return false;
 
-	return qtrue;
+	return true;
 }
 
 void parasite_drain_attack (edict_t *self)
@@ -500,35 +500,35 @@ void parasite_jump (edict_t *self)
 Blocked
 ===
 */
-qboolean parasite_blocked (edict_t *self, float dist)
+bool parasite_blocked (edict_t *self, float dist)
 {
 	if(blocked_checkshot (self, 0.25 + (0.05 * skill->value) ))
-		return qtrue;
+		return true;
 
 	if(blocked_checkjump (self, dist, 256, 68))
 	{
 		parasite_jump (self);
-		return qtrue;
+		return true;
 	}
 
 	if(blocked_checkplat (self, dist))
-		return qtrue;
-	else return qfalse;
+		return true;
+	else return false;
 }
 //ROGUE
 //================
 
 
-qboolean parasite_checkattack (edict_t *self)
+bool parasite_checkattack (edict_t *self)
 {
 	vec3_t	f, r, offset, start, end;
 	trace_t	tr;
-	qboolean retval;
+	bool 	retval;
 
 	retval = M_CheckAttack (self);
 
 	if (!retval)
-		return qfalse;
+		return false;
 
 	AngleVectors (self->s.angles, f, r, NULL);
 	VectorSet (offset, 24, 0, 6);
@@ -542,7 +542,7 @@ qboolean parasite_checkattack (edict_t *self)
 		{
 			end[2] = self->enemy->s.origin[2] + self->enemy->mins[2] + 8;
 			if (!parasite_drain_attack_ok(start, end))
-				return qfalse;
+				return false;
 		}
 	}
 	VectorCopy (self->enemy->s.origin, end);
@@ -556,9 +556,9 @@ qboolean parasite_checkattack (edict_t *self)
 			self->monsterinfo.attack(self);
 		
 		self->monsterinfo.aiflags &= ~AI_BLOCKED;
-		return qtrue;
+		return true;
 	}
-	else return qfalse;
+	else return false;
 }
 
 

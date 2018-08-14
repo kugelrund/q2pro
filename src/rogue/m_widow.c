@@ -25,7 +25,7 @@ black widow
 
 void BossExplode (edict_t *self);
 
-qboolean infront (edict_t *self, edict_t *other);
+bool infront (edict_t *self, edict_t *other);
 
 static int	sound_pain1;
 static int	sound_pain2;
@@ -273,7 +273,7 @@ void WidowBlaster (edict_t *self)
 
 		G_ProjectSource (self->s.origin, monster_flash_offset[flashnum], forward, right, start);
 
-		PredictAim (self->enemy, start, 1000, qtrue, ((random()*0.1)-0.05), forward, NULL);
+		PredictAim (self->enemy, start, 1000, true, ((random()*0.1)-0.05), forward, NULL);
 
 		// clamp it to within 10 degrees of the aiming angle (where she's facing)
 		vectoangles2 (forward, angles);
@@ -962,19 +962,19 @@ void widow_walk (edict_t *self)
 void widow_attack (edict_t *self)
 {
 	float	luck;
-	qboolean rail_frames = qfalse, blaster_frames = qfalse, blocked = qfalse, anger = qfalse;
+	bool 	rail_frames = false, blaster_frames = false, blocked = false, anger = false;
 
 	self->movetarget = NULL;
 
 	if (self->monsterinfo.aiflags & AI_BLOCKED)
 	{
-		blocked = qtrue;
+		blocked = true;
 		self->monsterinfo.aiflags &= ~AI_BLOCKED;
 	}
 	
 	if (self->monsterinfo.aiflags & AI_TARGET_ANGER)
 	{
-		anger = qtrue;
+		anger = true;
 		self->monsterinfo.aiflags &= ~AI_TARGET_ANGER;
 	}
 
@@ -997,10 +997,10 @@ void widow_attack (edict_t *self)
 	// frames FRAME_walk09, FRAME_walk10, FRAME_walk11, FRAME_walk12 are spawn & blaster start frames
 
 	if ((self->s.frame == FRAME_walk13) || ((self->s.frame >= FRAME_walk01) && (self->s.frame <= FRAME_walk03)))
-		rail_frames = qtrue;
+		rail_frames = true;
 
 	if ((self->s.frame >= FRAME_walk09) && (self->s.frame <= FRAME_walk12))
-		blaster_frames = qtrue;
+		blaster_frames = true;
 
 	WidowCalcSlots(self);
 
@@ -1409,7 +1409,7 @@ void WidowPowerups (edict_t *self)
 	}
 }
 
-qboolean Widow_CheckAttack (edict_t *self)
+bool Widow_CheckAttack (edict_t *self)
 {
 	vec3_t	spot1, spot2;
 	vec3_t	temp;
@@ -1420,7 +1420,7 @@ qboolean Widow_CheckAttack (edict_t *self)
 	float		real_enemy_range;
 
 	if (!self->enemy)
-		return qfalse;
+		return false;
 
 	WidowPowerups(self);
 
@@ -1439,7 +1439,7 @@ qboolean Widow_CheckAttack (edict_t *self)
 				{
 //					if ((g_showlogic) && (g_showlogic->value))
 //						gi.dprintf ("Not in good walk frame (%d), not attacking\n", (self->s.frame - FRAME_walk01+1));
-					return qfalse;
+					return false;
 				}
 			default:
 				break;
@@ -1452,7 +1452,7 @@ qboolean Widow_CheckAttack (edict_t *self)
 	{
 		self->monsterinfo.aiflags |= AI_BLOCKED;
 		self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 
 	if (self->enemy->health > 0)
@@ -1472,12 +1472,12 @@ qboolean Widow_CheckAttack (edict_t *self)
 			if (self->enemy->client && SELF_SLOTS_LEFT >= 2)
 			{
 				self->monsterinfo.attack_state = AS_BLIND;
-				return qtrue;
+				return true;
 			}
 				
 			// PGM - we want them to go ahead and shoot at info_notnulls if they can.
 			if(self->enemy->solid != SOLID_NOT || tr.fraction < 1.0)		//PGM
-				return qfalse;
+				return false;
 		}
 	}
 
@@ -1498,16 +1498,16 @@ qboolean Widow_CheckAttack (edict_t *self)
 	{
 		// don't always melee in easy mode
 		if (skill->value == 0 && (rand()&3) )
-			return qfalse;
+			return false;
 		if (self->monsterinfo.melee)
 			self->monsterinfo.attack_state = AS_MELEE;
 		else
 			self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 
 	if (level.time < self->monsterinfo.attack_finished)
-		return qfalse;
+		return false;
 		
 	if (self->monsterinfo.aiflags & AI_STAND_GROUND)
 	{
@@ -1534,13 +1534,13 @@ qboolean Widow_CheckAttack (edict_t *self)
 	if ((random () < chance) || (self->enemy->solid == SOLID_NOT))
 	{
 		self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 
-	return qfalse;
+	return false;
 }
 
-qboolean widow_blocked (edict_t *self, float dist)
+bool widow_blocked (edict_t *self, float dist)
 {
 	// if we get blocked while we're in our run/attack mode, turn on a meaningless (in this context)AI flag, 
 	// and call attack to get a new attack sequence.  make sure to turn it off when we're done.
@@ -1554,23 +1554,23 @@ qboolean widow_blocked (edict_t *self, float dist)
 			self->monsterinfo.attack(self);
 		else
 			self->monsterinfo.run(self);
-		return qtrue;
+		return true;
 	}
 
 	if(blocked_checkshot (self, 0.25 + (0.05 * skill->value) ))
-		return qtrue;
+		return true;
 
 /*
 	if(blocked_checkjump (self, dist, 192, 40))
 	{
 		infantry_jump(self);
-		return qtrue;
+		return true;
 	}
 
 	if(blocked_checkplat (self, dist))
-		return qtrue;
+		return true;
 */
-	return qfalse;
+	return false;
 }
 
 void WidowCalcSlots (edict_t *self)

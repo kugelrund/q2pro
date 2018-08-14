@@ -9,7 +9,7 @@ flyer
 #include "g_local.h"
 #include "m_flyer.h"
 
-qboolean visible (edict_t *self, edict_t *other);
+bool visible (edict_t *self, edict_t *other);
 
 static int	nextmove;			// Used for start/stop frames
 
@@ -720,7 +720,7 @@ void flyer_die(edict_t *self, edict_t *inflictor, edict_t *attacker, int damage,
 }
 
 // PMM - kamikaze code .. blow up if blocked	
-qboolean flyer_blocked (edict_t *self, float dist)
+bool flyer_blocked (edict_t *self, float dist)
 {
 	vec3_t origin;
 
@@ -748,13 +748,13 @@ qboolean flyer_blocked (edict_t *self, float dist)
 
 			G_FreeEdict (self);
 		}
-		return qtrue;
+		return true;
 	}
 	// we're a normal flyer
 	if(blocked_checkshot (self, 0.25 + (0.05 * skill->value) ))
-		return qtrue;
+		return true;
 
-	return qfalse;
+	return false;
 }
 
 /*QUAKED monster_flyer (1 .5 0) (-16 -16 -24) (16 16 32) Ambush Trigger_Spawn Sight

@@ -56,7 +56,6 @@ cvar_t  *sv_novis;
 
 cvar_t  *sv_maxclients;
 cvar_t  *sv_reserved_slots;
-cvar_t  *sv_showclamp;
 cvar_t  *sv_locked;
 cvar_t  *sv_downloadserver;
 cvar_t  *sv_redirect_address;
@@ -98,7 +97,7 @@ cvar_t  *g_features;
 
 cvar_t  *map_override_path;
 
-qboolean sv_registered;
+bool sv_registered;
 
 //============================================================================
 
@@ -260,7 +259,7 @@ Implements simple token bucket filter. Inspired by xt_limit.c from the Linux
 kernel. Returns true if limit is exceeded.
 ===============
 */
-qboolean SV_RateLimited(ratelimit_t *r)
+bool SV_RateLimited(ratelimit_t *r)
 {
     r->credit += (svs.realtime - r->time) * CREDITS_PER_MSEC;
     r->time = svs.realtime;
@@ -269,10 +268,10 @@ qboolean SV_RateLimited(ratelimit_t *r)
 
     if (r->credit >= r->cost) {
         r->credit -= r->cost;
-        return qfalse;
+        return false;
     }
 
-    return qtrue;
+    return true;
 }
 
 /*
@@ -345,6 +344,10 @@ void SV_RateInit(ratelimit_t *r, const char *s)
     }
 
     rate = (RATE_LIMIT_SCALE * period * mult) / limit;
+    if (!rate) {
+        Com_Printf("Limit too large: %u\n", limit);
+        return;
+    }
 
     p = strchr(p, '*');
     if (p) {
@@ -618,7 +621,7 @@ typedef struct {
 
     int         maxlength;
     int         nctype;
-    qboolean    has_zlib;
+    bool        has_zlib;
 
     int         reserved;   // hidden client slots
     char        reconnect_var[16];
@@ -629,10 +632,10 @@ typedef struct {
     Netchan_OutOfBand(NS_SERVER, &net_from, "print\n" __VA_ARGS__)
 
 // small hack to permit one-line return statement :)
-#define reject(...) __reject(__VA_ARGS__), qfalse
+#define reject(...) __reject(__VA_ARGS__), false
 #define reject2(...) __reject(__VA_ARGS__), NULL
 
-static qboolean parse_basic_params(conn_params_t *p)
+static bool parse_basic_params(conn_params_t *p)
 {
     p->protocol = atoi(Cmd_Argv(1));
     p->qport = atoi(Cmd_Argv(2)) ;
@@ -647,10 +650,10 @@ static qboolean parse_basic_params(conn_params_t *p)
     if (p->protocol < PROTOCOL_VERSION_DEFAULT)
         return reject("You need Quake 2 version 3.19 or higher.\n");
 
-    return qtrue;
+    return true;
 }
 
-static qboolean permit_connection(conn_params_t *p)
+static bool permit_connection(conn_params_t *p)
 {
     addrmatch_t *match;
     int i, count;
@@ -659,7 +662,7 @@ static qboolean permit_connection(conn_params_t *p)
 
     // loopback clients are permitted without any checks
     if (NET_IsLocalAddress(&net_from))
-        return qtrue;
+        return true;
 
     // see if the challenge is valid
     for (i = 0; i < MAX_CHALLENGES; i++) {
@@ -694,7 +697,7 @@ static qboolean permit_connection(conn_params_t *p)
 
     // link-local IPv6 addresses are permitted without sv_iplimit check
     if (net_from.type == NA_IP6 && NET_IsLanAddress(&net_from))
-        return qtrue;
+        return true;
 
     // limit number of connections from single IPv4 address or /48 IPv6 network
     if (sv_iplimit->integer > 0) {
@@ -722,10 +725,10 @@ static qboolean permit_connection(conn_params_t *p)
         }
     }
 
-    return qtrue;
+    return true;
 }
 
-static qboolean parse_packet_length(conn_params_t *p)
+static bool parse_packet_length(conn_params_t *p)
 {
     char *s;
 
@@ -754,10 +757,10 @@ static qboolean parse_packet_length(conn_params_t *p)
     if (p->maxlength < MIN_PACKETLEN)
         p->maxlength = MIN_PACKETLEN;
 
-    return qtrue;
+    return true;
 }
 
-static qboolean parse_enhanced_params(conn_params_t *p)
+static bool parse_enhanced_params(conn_params_t *p)
 {
     char *s;
 
@@ -773,7 +776,7 @@ static qboolean parse_enhanced_params(conn_params_t *p)
             p->version = PROTOCOL_VERSION_R1Q2_MINIMUM;
         }
         p->nctype = NETCHAN_OLD;
-        p->has_zlib = qtrue;
+        p->has_zlib = true;
     } else if (p->protocol == PROTOCOL_VERSION_Q2PRO) {
         // set netchan type
         s = Cmd_Argv(6);
@@ -790,7 +793,7 @@ static qboolean parse_enhanced_params(conn_params_t *p)
         if (*s) {
             p->has_zlib = !!atoi(s);
         } else {
-            p->has_zlib = qtrue;
+            p->has_zlib = true;
         }
 
         // set minor protocol version
@@ -808,7 +811,7 @@ static qboolean parse_enhanced_params(conn_params_t *p)
         }
     }
 
-    return qtrue;
+    return true;
 }
 
 static char *userinfo_ip_string(void)
@@ -831,7 +834,7 @@ static char *userinfo_ip_string(void)
     return NET_AdrToString(&net_from);
 }
 
-static qboolean parse_userinfo(conn_params_t *params, char *userinfo)
+static bool parse_userinfo(conn_params_t *params, char *userinfo)
 {
     char *info, *s;
 
@@ -889,7 +892,7 @@ static qboolean parse_userinfo(conn_params_t *params, char *userinfo)
             return reject("Oversize userinfo string.\n");
     }
 
-    return qtrue;
+    return true;
 }
 
 static client_t *redirect(const char *addr)
@@ -961,7 +964,7 @@ static void init_pmove_and_es_flags(client_t *newcl)
 
     // copy default pmove parameters
     newcl->pmp = sv_pmp;
-    newcl->pmp.airaccelerate = sv_airaccelerate->integer ? qtrue : qfalse;
+    newcl->pmp.airaccelerate = sv_airaccelerate->integer ? true : false;
 
     // common extensions
     force = 2;
@@ -969,7 +972,7 @@ static void init_pmove_and_es_flags(client_t *newcl)
         newcl->pmp.speedmult = 2;
         force = 1;
     }
-    newcl->pmp.strafehack = sv_strafejump_hack->integer >= force ? qtrue : qfalse;
+    newcl->pmp.strafehack = sv_strafejump_hack->integer >= force ? true : false;
 
     // r1q2 extensions
     if (newcl->protocol == PROTOCOL_VERSION_R1Q2) {
@@ -985,7 +988,7 @@ static void init_pmove_and_es_flags(client_t *newcl)
         if (sv_qwmod->integer) {
             PmoveEnableQW(&newcl->pmp);
         }
-        newcl->pmp.flyhack = qtrue;
+        newcl->pmp.flyhack = true;
         newcl->pmp.flyfriction = 4;
         newcl->esFlags |= MSG_ES_UMASK;
         if (newcl->version >= PROTOCOL_VERSION_Q2PRO_LONG_SOLID) {
@@ -998,7 +1001,7 @@ static void init_pmove_and_es_flags(client_t *newcl)
             force = 1;
         }
     }
-    newcl->pmp.waterhack = sv_waterjump_hack->integer >= force ? qtrue : qfalse;
+    newcl->pmp.waterhack = sv_waterjump_hack->integer >= force ? true : false;
 }
 
 static void send_connect_packet(client_t *newcl, int nctype)
@@ -1052,7 +1055,7 @@ static void SVC_DirectConnect(void)
     conn_params_t   params;
     client_t        *newcl;
     int             number;
-    qboolean        allow;
+    int             allow;
     char            *reason;
 
     memset(&params, 0, sizeof(params));
@@ -1146,7 +1149,7 @@ static void SVC_DirectConnect(void)
 
     // loopback client doesn't need to reconnect
     if (NET_IsLocalAddress(&net_from)) {
-        newcl->reconnected = qtrue;
+        newcl->reconnected = true;
     }
 
     // add them to the linked list of connected clients
@@ -1161,15 +1164,15 @@ static void SVC_DirectConnect(void)
     newcl->min_ping = 9999;
 }
 
-static qboolean rcon_valid(void)
+static bool rcon_valid(void)
 {
     if (!rcon_password->string[0])
-        return qfalse;
+        return false;
 
     if (strcmp(Cmd_Argv(1), rcon_password->string))
-        return qfalse;
+        return false;
 
-    return qtrue;
+    return true;
 }
 
 /*
@@ -1251,7 +1254,7 @@ static void SV_ConnectionlessPacket(void)
         return;
     }
 
-    Cmd_TokenizeString(string, qfalse);
+    Cmd_TokenizeString(string, false);
 
     c = Cmd_Argv(0);
     Com_DPrintf("ServerPacket[%s]: %s\n", NET_AdrToString(&net_from), c);
@@ -1471,7 +1474,7 @@ static void SV_PacketEvent(void)
         // this is a valid, sequenced packet, so process it
         client->lastmessage = svs.realtime;    // don't timeout
 #if USE_ICMP
-        client->unreachable = qfalse; // don't drop
+        client->unreachable = false; // don't drop
 #endif
         if (netchan->dropped > 0)
             client->frameflags |= FF_CLIENTDROP;
@@ -1548,7 +1551,7 @@ void SV_ErrorEvent(netadr_t *from, int ee_errno, int ee_info)
             continue;
         }
 #endif
-        client->unreachable = qtrue; // drop them soon
+        client->unreachable = true; // drop them soon
         break;
     }
 }
@@ -1569,10 +1572,6 @@ if necessary
 static void SV_CheckTimeouts(void)
 {
     client_t    *client;
-    unsigned    zombie_time = 1000 * sv_zombietime->value;
-    unsigned    drop_time   = 1000 * sv_timeout->value;
-    unsigned    ghost_time  = 1000 * sv_ghostime->value;
-    unsigned    idle_time   = 1000 * sv_idlekick->value;
     unsigned    delta;
 
     FOR_EACH_CLIENT(client) {
@@ -1583,7 +1582,7 @@ static void SV_CheckTimeouts(void)
         // NOTE: delta calculated this way is not sensitive to overflow
         delta = svs.realtime - client->lastmessage;
         if (client->state == cs_zombie) {
-            if (delta > zombie_time) {
+            if (delta > sv_zombietime->integer) {
                 SV_RemoveClient(client);
             }
             continue;
@@ -1594,14 +1593,14 @@ static void SV_CheckTimeouts(void)
         }
 #if USE_ICMP
         if (client->unreachable) {
-            if (delta > ghost_time) {
+            if (delta > sv_ghostime->integer) {
                 SV_DropClient(client, "connection reset by peer");
                 SV_RemoveClient(client);      // don't bother with zombie state
                 continue;
             }
         }
 #endif
-        if (delta > drop_time || (client->state == cs_assigned && delta > ghost_time)) {
+        if (delta > sv_timeout->integer || (client->state == cs_assigned && delta > sv_ghostime->integer)) {
             SV_DropClient(client, "?timed out");
             SV_RemoveClient(client);      // don't bother with zombie state
             continue;
@@ -1612,8 +1611,7 @@ static void SV_CheckTimeouts(void)
             continue;
         }
 
-        delta = svs.realtime - client->lastactivity;
-        if (idle_time && delta > idle_time) {
+        if (sv_idlekick->integer && svs.realtime - client->lastactivity > sv_idlekick->integer) {
             SV_DropClient(client, "idling");
             continue;
         }
@@ -1654,7 +1652,7 @@ static void SV_PrepWorldFrame(void)
 }
 
 // pause if there is only local client on the server
-static inline qboolean check_paused(void)
+static inline bool check_paused(void)
 {
 #if USE_CLIENT
     if (dedicated->integer)
@@ -1680,7 +1678,7 @@ static inline qboolean check_paused(void)
         IN_Activate();
     }
 
-    return qtrue; // don't run if paused
+    return true; // don't run if paused
 
 resume:
     if (sv_paused->integer) {
@@ -1689,7 +1687,7 @@ resume:
     }
 #endif
 
-    return qfalse;
+    return false;
 }
 
 /*
@@ -2018,6 +2016,16 @@ static void init_rate_limits(void)
     SV_RateInit(&svs.ratelimit_rcon, sv_rcon_limit->string);
 }
 
+void sv_sec_timeout_changed(cvar_t *self)
+{
+    self->integer = 1000 * Cvar_ClampValue(self, 0, 24 * 24 * 60 * 60);
+}
+
+void sv_min_timeout_changed(cvar_t *self)
+{
+    self->integer = 1000 * 60 * Cvar_ClampValue(self, 0, 24 * 24 * 60);
+}
+
 static void sv_namechange_limit_changed(cvar_t *self)
 {
     client_t *client;
@@ -2084,10 +2092,17 @@ void SV_Init(void)
     sv_hostname->changed = sv_hostname_changed;
 #endif
     sv_timeout = Cvar_Get("timeout", "90", 0);
+    sv_timeout->changed = sv_sec_timeout_changed;
+    sv_timeout->changed(sv_timeout);
     sv_zombietime = Cvar_Get("zombietime", "2", 0);
+    sv_zombietime->changed = sv_sec_timeout_changed;
+    sv_zombietime->changed(sv_zombietime);
     sv_ghostime = Cvar_Get("sv_ghostime", "6", 0);
+    sv_ghostime->changed = sv_sec_timeout_changed;
+    sv_ghostime->changed(sv_ghostime);
     sv_idlekick = Cvar_Get("sv_idlekick", "0", 0);
-    sv_showclamp = Cvar_Get("showclamp", "0", 0);
+    sv_idlekick->changed = sv_sec_timeout_changed;
+    sv_idlekick->changed(sv_idlekick);
     sv_enforcetime = Cvar_Get("sv_enforcetime", "1", 0);
     sv_allow_nodelta = Cvar_Get("sv_allow_nodelta", "1", 0);
 #if USE_FPS
@@ -2169,7 +2184,7 @@ void SV_Init(void)
     SV_SetConsoleTitle();
 #endif
 
-    sv_registered = qtrue;
+    sv_registered = true;
 }
 
 /*
@@ -2295,4 +2310,3 @@ void SV_Shutdown(const char *finalmsg, error_type_t type)
 
     Z_LeakTest(TAG_SERVER);
 }
-

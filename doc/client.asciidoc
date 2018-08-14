@@ -67,8 +67,6 @@ cl_async::
     the table below.
         - 0 — run synchronous, like original Quake 2 does
         - 1 — run asynchronous
-        - 2 — run asynchronous, limit rendering frame rate to monitor's vertical
-        retrace frequency (supported only when using SDL 1 with X11/GLX)
 
 .Rate limits depending on ‘cl_async’ value
 [options="header"]
@@ -76,7 +74,6 @@ cl_async::
 | Value of ‘cl_async’ | Rendering          | Physics   | Main loop
 | 0                   | cl_maxfps          | cl_maxfps | cl_maxfps
 | 1                   | r_maxfps           | cl_maxfps | _unlimited_
-| 2                   | _vertical refresh_ | cl_maxfps | _unlimited_
 |===================================================================
 
 r_maxfps::
@@ -563,10 +560,6 @@ gl_upscale_pcx::
       - 1 — upscale 2x (takes 5x more memory)
       - 2 — upscale 4x (takes 21x more memory)
 
-gl_texture_non_power_of_two::
-    Enables use of non power-of-two sized textures without resampling on OpenGL
-    3.0 and higher compliant hardware. Default value is 1.
-
 gl_downsample_skins::
     Specifies if skins are downsampled just like world textures are. When
     disabled, ‘gl_round_down’, ‘gl_picmip’ cvars have no effect on skins.
@@ -587,6 +580,12 @@ gl_partstyle::
     Specifies drawing style of particles. Default value is 0.
       - 0 — blend colors
       - 1 — saturate colors
+
+gl_partshape::
+    Specifies shape of particles. Default value is 0.
+      - 0 — faded circle
+      - 1 — square
+      - 2 — fuller, less faded circle
 
 gl_celshading::
     Enables drawing black contour lines around 3D models (aka ‘celshading’).
@@ -612,7 +611,7 @@ gl_invert::
 
 gl_anisotropy::
     When set to 2 and higher, enables anisotropic filtering of world textures,
-    if supported by your OpenGL implementation. Default value is 0 (anisotropic
+    if supported by your OpenGL implementation. Default value is 1 (anisotropic
     filtering disabled).
 
 gl_brightness::
@@ -679,22 +678,11 @@ gl_dlight_falloff::
     Makes dynamic lights look a bit smoother, opposed to original jagged Quake
     2 style.  Default value is 1 (enabled).
 
-gl_fragment_program::
-    Enables ‘GL_ARB_fragment_program’ extension, if supported by your OpenGL
-    implementation.  Currently this extension is used only for warping effect
-    when drawing liquid surfaces. Default value is 1 (enabled).
-
-gl_vertex_buffer_object::
-    Enables ‘GL_ARB_vertex_buffer_object’ extension, if supported by your
-    OpenGL implementation. This extension allows world surfaces to be stored in
-    static memory area, which speeds up rendering. Default value is 1
-    (enabled).
-
-gl_video_sync::
-    Enables ‘GLX_SGI_video_sync’ extension when using SDL 1 with X11/GLX. This
-    extension allows synchronizing rendering framerate to monitor vertical
-    retrace frequency. Default value is 1 (enabled). See also ‘cl_async’
-    variable.
+gl_shaders::
+    Enables GLSL rendering backend. This requires at least OpenGL 3.0 and
+    changes how ‘gl_modulate’, ‘gl_brightness’ and ‘intensity’ parameters work
+    to prevent ‘washed out’ colors. Default value is 1 (enabled) on systems
+    that support shaders, 0 otherwise.
 
 gl_colorbits::
     Specifies desired size of color buffer, in bits, requested from OpenGL
@@ -729,11 +717,18 @@ gl_screenshot_format::
 
 gl_screenshot_quality::
     Specifies image quality of JPG screenshots. Values range from 0 (worst
-    quality) to 100 (best quality). Default value is 100.
+    quality) to 100 (best quality). Default value is 90.
 
 gl_screenshot_compression::
     Specifies compression level of PNG screenshots. Values range from 0 (no
     compression) to 9 (best compression). Default value is 6.
+
+gl_screenshot_async::
+    Specifies if screenshots are saved in background thread to avoid pausing
+    the client. Default value is 1.
+     - 0 — save screenshots synchronously
+     - 1 — save PNG screenshots in background thread
+     - 2 — save JPG and PNG screenshots in background thread
 
 r_override_textures::
     Enables automatic overriding of palettized textures (in WAL or PCX format)
@@ -1370,9 +1365,6 @@ it used to be you know where to look. The following list may be incomplete.
 - Q2PRO has a built-in renderer and doesn't support run-time loading of external
   renderers.  Thus, ‘vid_ref’ cvar has been made read-only and exists only for
   informational purpose.
-
-- Default value of ‘intensity’ variable has been changed from 2 to 1. This means
-  textures will appear darker by default.
 
 - Default value of ‘gl_dynamic’ variable has been changed from 1 to 2. This means
   dynamic lights will be disabled by default.

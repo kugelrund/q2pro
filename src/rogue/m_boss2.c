@@ -11,7 +11,7 @@ boss2
 
 void BossExplode (edict_t *self);
 
-qboolean infront (edict_t *self, edict_t *other);
+bool infront (edict_t *self, edict_t *other);
 
 static int	sound_pain1;
 static int	sound_pain2;
@@ -626,7 +626,7 @@ void boss2_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage
 #endif
 }
 
-qboolean Boss2_CheckAttack (edict_t *self)
+bool Boss2_CheckAttack (edict_t *self)
 {
 	vec3_t	spot1, spot2;
 	vec3_t	temp;
@@ -650,7 +650,7 @@ qboolean Boss2_CheckAttack (edict_t *self)
 		{	
 			// PGM - we want them to go ahead and shoot at info_notnulls if they can.
 			if(self->enemy->solid != SOLID_NOT || tr.fraction < 1.0)		//PGM
-				return qfalse;
+				return false;
 		}
 	}
 	
@@ -668,18 +668,18 @@ qboolean Boss2_CheckAttack (edict_t *self)
 			self->monsterinfo.attack_state = AS_MELEE;
 		else
 			self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 	
 // missile attack
 	if (!self->monsterinfo.attack)
-		return qfalse;
+		return false;
 		
 	if (level.time < self->monsterinfo.attack_finished)
-		return qfalse;
+		return false;
 		
 	if (enemy_range == RANGE_FAR)
-		return qfalse;
+		return false;
 
 	if (self->monsterinfo.aiflags & AI_STAND_GROUND)
 	{
@@ -699,7 +699,7 @@ qboolean Boss2_CheckAttack (edict_t *self)
 	}
 	else
 	{
-		return qfalse;
+		return false;
 	}
 
 	// PGM - go ahead and shoot every time if it's a info_notnull
@@ -707,7 +707,7 @@ qboolean Boss2_CheckAttack (edict_t *self)
 	{
 		self->monsterinfo.attack_state = AS_MISSILE;
 		self->monsterinfo.attack_finished = level.time + 2*random();
-		return qtrue;
+		return true;
 	}
 
 	if (self->flags & FL_FLY)
@@ -718,7 +718,7 @@ qboolean Boss2_CheckAttack (edict_t *self)
 			self->monsterinfo.attack_state = AS_STRAIGHT;
 	}
 
-	return qfalse;
+	return false;
 }
 
 

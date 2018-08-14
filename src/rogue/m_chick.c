@@ -13,7 +13,7 @@ chick
 #define LEAD_TARGET		1
 // ROGUE
 
-qboolean visible (edict_t *self, edict_t *other);
+bool visible (edict_t *self, edict_t *other);
 
 void chick_stand (edict_t *self);
 void chick_run (edict_t *self);
@@ -503,12 +503,12 @@ void ChickRocket (edict_t *self)
 	float	dist;
 	// pmm - blindfire
 	vec3_t	target;
-	qboolean blindfire = qfalse;
+	bool 	blindfire = false;
 
 	if (self->monsterinfo.aiflags & AI_MANUAL_STEERING)
-		blindfire = qtrue;
+		blindfire = true;
 	else
-		blindfire = qfalse;
+		blindfire = false;
 
 	if(!self->enemy || !self->enemy->inuse)		//PGM
 		return;									//PGM
@@ -824,15 +824,15 @@ void chick_sight(edict_t *self, edict_t *other)
 
 //===========
 //PGM
-qboolean chick_blocked (edict_t *self, float dist)
+bool chick_blocked (edict_t *self, float dist)
 {
 	if(blocked_checkshot (self, 0.25 + (0.05 * skill->value) ))
-		return qtrue;
+		return true;
 
 	if(blocked_checkplat (self, dist))
-		return qtrue;
+		return true;
 
-	return qfalse;
+	return false;
 }
 //PGM
 //===========
@@ -941,7 +941,7 @@ void SP_monster_chick (edict_t *self)
 	self->monsterinfo.scale = MODEL_SCALE;
 
 	// PMM
-	self->monsterinfo.blindfire = qtrue;
+	self->monsterinfo.blindfire = true;
 	// pmm
 	walkmonster_start (self);
 }

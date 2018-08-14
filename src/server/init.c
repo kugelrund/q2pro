@@ -91,7 +91,7 @@ static void override_entity_string(const char *server)
 {
     char *path = map_override_path->string;
     char buffer[MAX_QPATH], *str;
-    ssize_t len;
+    int len;
 
     if (!*path) {
         return;
@@ -272,11 +272,11 @@ Parses mapcmd into more C friendly form.
 Loads and fully validates the map to make sure server doesn't get killed.
 ==============
 */
-qboolean SV_ParseMapCmd(mapcmd_t *cmd)
+bool SV_ParseMapCmd(mapcmd_t *cmd)
 {
     char        expanded[MAX_QPATH];
     char        *s, *ch;
-    qerror_t    ret;
+    int         ret;
     size_t      len;
 
     s = cmd->buffer;
@@ -284,7 +284,7 @@ qboolean SV_ParseMapCmd(mapcmd_t *cmd)
     // skip the end-of-unit flag if necessary
     if (*s == '*') {
         s++;
-        cmd->endofunit = qtrue;
+        cmd->endofunit = true;
     }
 
     // if there is a + in the map, set nextserver to the remainder.
@@ -296,7 +296,7 @@ qboolean SV_ParseMapCmd(mapcmd_t *cmd)
         // skip the end-of-unit flag if necessary
         if (*s == '*') {
             s++;
-            cmd->endofunit = qtrue;
+            cmd->endofunit = true;
         }
     }
 
@@ -332,10 +332,10 @@ qboolean SV_ParseMapCmd(mapcmd_t *cmd)
 
     if (ret < 0) {
         Com_Printf("Couldn't load %s: %s\n", expanded, Q_ErrorString(ret));
-        return qfalse;
+        return false;
     }
 
-    return qtrue;
+    return true;
 }
 
 /*
@@ -461,6 +461,5 @@ void SV_InitGame(unsigned mvd_spawn)
 
     AC_Connect(mvd_spawn);
 
-    svs.initialized = qtrue;
+    svs.initialized = true;
 }
-

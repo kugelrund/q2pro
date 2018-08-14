@@ -2,13 +2,13 @@
 
 #include "g_local.h"
 
-qboolean FindTarget (edict_t *self);
+bool FindTarget (edict_t *self);
 extern cvar_t	*maxclients;
 
-qboolean ai_checkattack (edict_t *self, float dist);
+bool ai_checkattack (edict_t *self, float dist);
 
-qboolean	enemy_vis;
-qboolean	enemy_infront;
+bool		enemy_vis;
+bool		enemy_infront;
 int			enemy_range;
 float		enemy_yaw;
 
@@ -93,7 +93,7 @@ void ai_stand (edict_t *self, float dist)
 {
 	vec3_t	v;
 	// PMM
-	qboolean retval;
+	bool retval;
 
 	if (dist)
 		M_walkmove (self, self->s.angles[YAW], dist);
@@ -344,7 +344,7 @@ visible
 returns 1 if the entity is visible to self, even if not infront ()
 =============
 */
-qboolean visible (edict_t *self, edict_t *other)
+bool visible (edict_t *self, edict_t *other)
 {
 	vec3_t	spot1;
 	vec3_t	spot2;
@@ -357,8 +357,8 @@ qboolean visible (edict_t *self, edict_t *other)
 	trace = gi.trace (spot1, vec3_origin, vec3_origin, spot2, self, MASK_OPAQUE);
 	
 	if (trace.fraction == 1.0 || trace.ent == other)		// PGM
-		return qtrue;
-	return qfalse;
+		return true;
+	return false;
 }
 
 
@@ -369,7 +369,7 @@ infront
 returns 1 if the entity is in front (in sight) of self
 =============
 */
-qboolean infront (edict_t *self, edict_t *other)
+bool infront (edict_t *self, edict_t *other)
 {
 	vec3_t	vec;
 	float	dot;
@@ -381,8 +381,8 @@ qboolean infront (edict_t *self, edict_t *other)
 	dot = DotProduct (vec, forward);
 	
 	if (dot > 0.3)
-		return qtrue;
-	return qfalse;
+		return true;
+	return false;
 }
 
 
@@ -464,7 +464,7 @@ FindTarget
 
 Self is currently not attacking anything, so try to find a target
 
-Returns qtrue if an enemy was sighted
+Returns true if an enemy was sighted
 
 When a player fires a missile, the point of impact becomes a fakeplayer so
 that monsters that see the impact will respond as if they had seen the
@@ -475,10 +475,10 @@ checked each frame.  This means multi player games will have slightly
 slower noticing monsters.
 ============
 */
-qboolean FindTarget (edict_t *self)
+bool FindTarget (edict_t *self)
 {
 	edict_t		*client;
-	qboolean	heardit;
+	bool	heardit;
 	int			r;
 
 	if (self->monsterinfo.aiflags & AI_GOOD_GUY)
@@ -486,16 +486,16 @@ qboolean FindTarget (edict_t *self)
 		if (self->goalentity && self->goalentity->inuse && self->goalentity->classname)
 		{
 			if (strcmp(self->goalentity->classname, "target_actor") == 0)
-				return qfalse;
+				return false;
 		}
 
 		//FIXME look for monsters?
-		return qfalse;
+		return false;
 	}
 
 	// if we're going to a combat point, just proceed
 	if (self->monsterinfo.aiflags & AI_COMBAT_POINT)
-		return qfalse;
+		return false;
 
 // if the first spawnflag bit is set, the monster will only wake up on
 // really seeing the player, not another monster getting angry or hearing
@@ -504,13 +504,13 @@ qboolean FindTarget (edict_t *self)
 // revised behavior so they will wake up if they "see" a player make a noise
 // but not weapon impact/explosion noises
 
-	heardit = qfalse;
+	heardit = false;
 	if ((level.sight_entity_framenum >= (level.framenum - 1)) && !(self->spawnflags & 1) )
 	{
 		client = level.sight_entity;
 		if (client->enemy == self->enemy)
 		{
-			return qfalse;
+			return false;
 		}
 	}
 	else if (level.disguise_violation_framenum > level.framenum)
@@ -520,87 +520,87 @@ qboolean FindTarget (edict_t *self)
 	else if (level.sound_entity_framenum >= (level.framenum - 1))
 	{
 		client = level.sound_entity;
-		heardit = qtrue;
+		heardit = true;
 	}
 	else if (!(self->enemy) && (level.sound2_entity_framenum >= (level.framenum - 1)) && !(self->spawnflags & 1) )
 	{
 		client = level.sound2_entity;
-		heardit = qtrue;
+		heardit = true;
 	}
 	else
 	{
 		client = level.sight_client;
 		if (!client)
-			return qfalse;	// no clients to get mad at
+			return false;	// no clients to get mad at
 	}
 
 	// if the entity went away, forget it
 	if (!client->inuse)
-		return qfalse;
+		return false;
 
 	if (client == self->enemy)
-		return qtrue;	// JDC qfalse;
+		return true;	// JDC false;
 
 	//PMM - hintpath coop fix
 	if ((self->monsterinfo.aiflags & AI_HINT_PATH) && (coop) && (coop->value))
 	{
 //		if ((heardit) && (g_showlogic) && (g_showlogic->value))
 //			gi.dprintf ("ignoring coop sound target\n");
-		heardit = qfalse;
+		heardit = false;
 	}
 	// pmm
 
 	if (client->client)
 	{
 		if (client->flags & FL_NOTARGET)
-			return qfalse;
+			return false;
 	}
 	else if (client->svflags & SVF_MONSTER)
 	{
 		if (!client->enemy)
-			return qfalse;
+			return false;
 		if (client->enemy->flags & FL_NOTARGET)
-			return qfalse;
+			return false;
 	}
 	else if (heardit)
 	{
 		// pgm - a little more paranoia won't hurt....
 		if ((client->owner) && (client->owner->flags & FL_NOTARGET))
-			return qfalse;
+			return false;
 	}
 	else
-		return qfalse;
+		return false;
 
 	if (!heardit)
 	{
 		r = range (self, client);
 
 		if (r == RANGE_FAR)
-			return qfalse;
+			return false;
 
 // this is where we would check invisibility
 
 		// is client in an spot too dark to be seen?
 		if (client->light_level <= 5)
-			return qfalse;
+			return false;
 
 		if (!visible (self, client))
 		{
-			return qfalse;
+			return false;
 		}
 
 		if (r == RANGE_NEAR)
 		{
 			if (client->show_hostile < level.time && !infront (self, client))
 			{
-				return qfalse;
+				return false;
 			}
 		}
 		else if (r == RANGE_MID)
 		{
 			if (!infront (self, client))
 			{
-				return qfalse;
+				return false;
 			}
 		}
 
@@ -616,7 +616,7 @@ qboolean FindTarget (edict_t *self)
 				if (!self->enemy->client)
 				{
 					self->enemy = NULL;
-					return qfalse;
+					return false;
 				}
 			}
 		}
@@ -628,25 +628,25 @@ qboolean FindTarget (edict_t *self)
 		if (self->spawnflags & 1)
 		{
 			if (!visible (self, client))
-				return qfalse;
+				return false;
 		}
 		else
 		{
 			if (!gi.inPHS(self->s.origin, client->s.origin))
-				return qfalse;
+				return false;
 		}
 
 		VectorSubtract (client->s.origin, self->s.origin, temp);
 
 		if (VectorLength(temp) > 1000)	// too far to hear
 		{
-			return qfalse;
+			return false;
 		}
 
 		// check area portals - if they are different and not connected then we can't hear it
 		if (client->areanum != self->areanum)
 			if (!gi.AreasConnected(self->areanum, client->areanum))
-				return qfalse;
+				return false;
 	
 		self->ideal_yaw = vectoyaw(temp);
 		if (!(self->monsterinfo.aiflags & AI_MANUAL_STEERING))
@@ -677,7 +677,7 @@ qboolean FindTarget (edict_t *self)
 	if (!(self->monsterinfo.aiflags & AI_SOUND_TARGET) && (self->monsterinfo.sight))
 		self->monsterinfo.sight (self, self->enemy);
 
-	return qtrue;
+	return true;
 }
 
 
@@ -689,20 +689,20 @@ FacingIdeal
 
 ============
 */
-qboolean FacingIdeal(edict_t *self)
+bool FacingIdeal(edict_t *self)
 {
 	float	delta;
 
 	delta = anglemod(self->s.angles[YAW] - self->ideal_yaw);
 	if (delta > 45 && delta < 315)
-		return qfalse;
-	return qtrue;
+		return false;
+	return true;
 }
 
 
 //=============================================================================
 
-qboolean M_CheckAttack (edict_t *self)
+bool M_CheckAttack (edict_t *self)
 {
 	vec3_t	spot1, spot2;
 	float	chance;
@@ -731,12 +731,12 @@ qboolean M_CheckAttack (edict_t *self)
 					{
 						if (level.time < self->monsterinfo.attack_finished)
 						{
-							return qfalse;
+							return false;
 						}
 						if (level.time < (self->monsterinfo.trail_time + self->monsterinfo.blind_fire_delay))
 						{
 							// wait for our time
-							return qfalse;
+							return false;
 						}
 						else
 						{
@@ -751,16 +751,16 @@ qboolean M_CheckAttack (edict_t *self)
 							{
 //								if ((g_showlogic) && (g_showlogic->value))
 //									gi.dprintf ("blindfire blocked\n");
-								return qfalse;
+								return false;
 							}
 
 							self->monsterinfo.attack_state = AS_BLIND;
-							return qtrue;
+							return true;
 						}
 					}
 				}
 				// pmm
-				return qfalse;
+				return false;
 			}
 		}
 	}
@@ -773,13 +773,13 @@ qboolean M_CheckAttack (edict_t *self)
 		{
 			// PMM - fix for melee only monsters & strafing
 			self->monsterinfo.attack_state = AS_STRAIGHT;
-			return qfalse;
+			return false;
 		}
 		if (self->monsterinfo.melee)
 			self->monsterinfo.attack_state = AS_MELEE;
 		else
 			self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 	
 // missile attack
@@ -787,14 +787,14 @@ qboolean M_CheckAttack (edict_t *self)
 	{
 		// PMM - fix for melee only monsters & strafing
 		self->monsterinfo.attack_state = AS_STRAIGHT;
-		return qfalse;
+		return false;
 	}
 	
 	if (level.time < self->monsterinfo.attack_finished)
-		return qfalse;
+		return false;
 		
 	if (enemy_range == RANGE_FAR)
-		return qfalse;
+		return false;
 
 	if (self->monsterinfo.aiflags & AI_STAND_GROUND)
 	{
@@ -814,7 +814,7 @@ qboolean M_CheckAttack (edict_t *self)
 	}
 	else
 	{
-		return qfalse;
+		return false;
 	}
 
 	if (skill->value == 0)
@@ -827,7 +827,7 @@ qboolean M_CheckAttack (edict_t *self)
 	{
 		self->monsterinfo.attack_state = AS_MISSILE;
 		self->monsterinfo.attack_finished = level.time + 2*random();
-		return qtrue;
+		return true;
 	}
 
 	// PMM -daedalus should strafe more .. this can be done here or in a customized
@@ -862,7 +862,7 @@ qboolean M_CheckAttack (edict_t *self)
 #endif
 //-PMM
 
-	return qfalse;
+	return false;
 }
 
 
@@ -1002,18 +1002,18 @@ Decides if we're going to attack or do something else
 used by ai_run and ai_stand
 =============
 */
-qboolean ai_checkattack (edict_t *self, float dist)
+bool ai_checkattack (edict_t *self, float dist)
 {
 	vec3_t		temp;
-	qboolean	hesDeadJim;
+	bool	hesDeadJim;
 	// PMM
-	qboolean	retval;
+	bool	retval;
 
 // this causes monsters to run blindly to the combat point w/o firing
 	if (self->goalentity)
 	{
 		if (self->monsterinfo.aiflags & AI_COMBAT_POINT)
-			return qfalse;
+			return false;
 
 		if (self->monsterinfo.aiflags & AI_SOUND_TARGET)
 		{
@@ -1033,24 +1033,24 @@ qboolean ai_checkattack (edict_t *self, float dist)
 			else
 			{
 				self->show_hostile = level.time + 1;
-				return qfalse;
+				return false;
 			}
 		}
 	}
 
-	enemy_vis = qfalse;
+	enemy_vis = false;
 
 // see if the enemy is dead
-	hesDeadJim = qfalse;
+	hesDeadJim = false;
 	if ((!self->enemy) || (!self->enemy->inuse))
 	{
-		hesDeadJim = qtrue;
+		hesDeadJim = true;
 	}
 	else if (self->monsterinfo.aiflags & AI_MEDIC)
 	{
 		if (!(self->enemy->inuse) || (self->enemy->health > 0))
 		{
-			hesDeadJim = qtrue;
+			hesDeadJim = true;
 //			self->monsterinfo.aiflags &= ~AI_MEDIC;
 		}
 	}
@@ -1059,12 +1059,12 @@ qboolean ai_checkattack (edict_t *self, float dist)
 		if (self->monsterinfo.aiflags & AI_BRUTAL)
 		{
 			if (self->enemy->health <= -80)
-				hesDeadJim = qtrue;
+				hesDeadJim = true;
 		}
 		else
 		{
 			if (self->enemy->health <= 0)
-				hesDeadJim = qtrue;
+				hesDeadJim = true;
 		}
 	}
 
@@ -1106,7 +1106,7 @@ qboolean ai_checkattack (edict_t *self, float dist)
 				self->monsterinfo.pausetime = level.time + 100000000;
 				self->monsterinfo.stand (self);
 			}
-			return qtrue;
+			return true;
 		}
 	}
 
@@ -1130,7 +1130,7 @@ qboolean ai_checkattack (edict_t *self, float dist)
 //	if (coop && self->monsterinfo.search_time < level.time)
 //	{
 //		if (FindTarget (self))
-//			return qtrue;
+//			return true;
 //	}
 
 	enemy_infront = infront(self, self->enemy);
@@ -1150,24 +1150,24 @@ qboolean ai_checkattack (edict_t *self, float dist)
 		if (self->monsterinfo.attack_state == AS_MISSILE)
 		{
 			ai_run_missile (self);
-			return qtrue;
+			return true;
 		}
 		if (self->monsterinfo.attack_state == AS_MELEE)
 		{
 			ai_run_melee (self);
-			return qtrue;
+			return true;
 		}
 		// PMM -- added so monsters can shoot blind
 		if (self->monsterinfo.attack_state == AS_BLIND)
 		{
 			ai_run_missile (self);
-			return qtrue;
+			return true;
 		}
 		// pmm
 
 		// if enemy is not currently visible, we will never attack
 		if (!enemy_vis)
-			return qfalse;
+			return false;
 		// PMM
 	}
 	return retval;
@@ -1188,7 +1188,7 @@ void ai_run (edict_t *self, float dist)
 	vec3_t		v;
 	edict_t		*tempgoal;
 	edict_t		*save;
-	qboolean	new;
+	bool	new;
 	edict_t		*marker;
 	float		d1, d2;
 	trace_t		tr;
@@ -1196,9 +1196,9 @@ void ai_run (edict_t *self, float dist)
 	float		left, center, right;
 	vec3_t		left_target, right_target;
 	//PMM
-	qboolean	retval;
-	qboolean	alreadyMoved = qfalse;
-	qboolean	gotcha = qfalse;
+	bool	retval;
+	bool	alreadyMoved = false;
+	bool	gotcha = false;
 	edict_t		*realEnemy;
  
 	// if we're going to a combat point, just proceed
@@ -1284,16 +1284,16 @@ void ai_run (edict_t *self, float dist)
 
 		if (coop && coop->value)
 		{
-			// if we're in coop, check my real enemy first .. if I SEE him, set gotcha to qtrue
+			// if we're in coop, check my real enemy first .. if I SEE him, set gotcha to true
 			if (self->enemy && visible(self, realEnemy))
-				gotcha = qtrue;
+				gotcha = true;
 			else // otherwise, let FindTarget bump us out of hint paths, if appropriate
 				FindTarget(self);
 		}
 		else
 		{
 			if(self->enemy && visible(self, realEnemy))
-				gotcha = qtrue;
+				gotcha = true;
 		}
 		
 		// if we see the player, stop following hintpaths.
@@ -1328,7 +1328,7 @@ void ai_run (edict_t *self, float dist)
 
 		M_MoveToGoal (self, dist);
 		// PMM - prevent double moves for sound_targets
-		alreadyMoved = qtrue;
+		alreadyMoved = true;
 		// pmm
 		if(!self->inuse)
 			return;			// PGM - g_touchtrigger free problem
@@ -1462,7 +1462,7 @@ void ai_run (edict_t *self, float dist)
 	tempgoal = G_Spawn();
 	self->goalentity = tempgoal;
 
-	new = qfalse;
+	new = false;
 
 	if (!(self->monsterinfo.aiflags & AI_LOST_SIGHT))
 	{
@@ -1470,7 +1470,7 @@ void ai_run (edict_t *self, float dist)
 //		gi.dprintf("lost sight of player, last seen at %s\n", vtos(self->monsterinfo.last_sighting));
 		self->monsterinfo.aiflags |= (AI_LOST_SIGHT | AI_PURSUIT_LAST_SEEN);
 		self->monsterinfo.aiflags &= ~(AI_PURSUE_NEXT | AI_PURSUE_TEMP);
-		new = qtrue;
+		new = true;
 	}
 
 	if (self->monsterinfo.aiflags & AI_PURSUE_NEXT)
@@ -1490,7 +1490,7 @@ void ai_run (edict_t *self, float dist)
 			self->monsterinfo.aiflags &= ~AI_PURSUE_TEMP;
 			marker = NULL;
 			VectorCopy (self->monsterinfo.saved_goal, self->monsterinfo.last_sighting);
-			new = qtrue;
+			new = true;
 		}
 		else if (self->monsterinfo.aiflags & AI_PURSUIT_LAST_SEEN)
 		{
@@ -1510,7 +1510,7 @@ void ai_run (edict_t *self, float dist)
 //			gi.dprintf("heading is %0.1f\n", self->ideal_yaw);
 
 //			debug_drawline(self.origin, self.last_sighting, 52);
-			new = qtrue;
+			new = true;
 		}
 	}
 

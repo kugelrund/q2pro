@@ -34,7 +34,7 @@ static float sweep_angles[] = {
 
 extern vec3_t	stalker_mins, stalker_maxs;
 
-qboolean infront (edict_t *self, edict_t *other);
+bool infront (edict_t *self, edict_t *other);
 void WidowCalcSlots (edict_t *self);
 void WidowPowerups (edict_t *self);
 
@@ -55,9 +55,9 @@ void Widow2SaveBeamTarget(edict_t *self);
 void WidowExplode (edict_t *self);
 void gib_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point);
 void gib_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf);
-void ThrowWidowGibReal (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, qboolean large, int hitsound, qboolean fade);
-void ThrowWidowGibSized (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, int hitsound, qboolean fade);
-void ThrowWidowGibLoc (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, qboolean fade);
+void ThrowWidowGibReal (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, bool large, int hitsound, bool fade);
+void ThrowWidowGibSized (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, int hitsound, bool fade);
+void ThrowWidowGibLoc (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, bool fade);
 void WidowExplosion1 (edict_t *self);
 void WidowExplosion2 (edict_t *self);
 void WidowExplosion3 (edict_t *self);
@@ -370,7 +370,7 @@ void WidowDisrupt (edict_t *self)
 //		if ((g_showlogic) && (g_showlogic->value))
 //			gi.dprintf ("target missed - dist %2.2f\n", len);
 
-		PredictAim (self->enemy, start, 1200, qtrue, 0, dir, NULL);
+		PredictAim (self->enemy, start, 1200, true, 0, dir, NULL);
 
 //		VectorSubtract (self->enemy->s.origin, start, dir);
 //		VectorNormalize (dir);
@@ -459,23 +459,23 @@ mframe_t widow2_frames_spawn [] =
 };
 mmove_t widow2_move_spawn = {FRAME_spawn01, FRAME_spawn18, widow2_frames_spawn, NULL};
 
-static qboolean widow2_tongue_attack_ok (vec3_t start, vec3_t end, float range)
+static bool widow2_tongue_attack_ok (vec3_t start, vec3_t end, float range)
 {
 	vec3_t	dir, angles;
 
 	// check for max distance
 	VectorSubtract (start, end, dir);
 	if (VectorLength(dir) > range)
-		return qfalse;
+		return false;
 
 	// check for min/max pitch
 	vectoangles (dir, angles);
 	if (angles[0] < -180)
 		angles[0] += 360;
 	if (fabs(angles[0]) > 30)
-		return qfalse;
+		return false;
 
-	return qtrue;
+	return true;
 }
 
 void Widow2Tongue (edict_t *self)
@@ -769,11 +769,11 @@ void widow2_melee (edict_t *self)
 void widow2_attack (edict_t *self)
 {
 	float	range, luck;
-	qboolean blocked = qfalse;
+	bool 	blocked = false;
 
 	if (self->monsterinfo.aiflags & AI_BLOCKED)
 	{
-		blocked = qtrue;
+		blocked = true;
 		self->monsterinfo.aiflags &= ~AI_BLOCKED;
 	}
 
@@ -961,22 +961,22 @@ void widow2_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 
 		gi.sound (self, CHAN_VOICE, gi.soundindex ("misc/udeath.wav"), 1, ATTN_NORM, 0);
 		for (n= 0; n < 2; n++)
-			ThrowWidowGibLoc (self, "models/objects/gibs/bone/tris.md2", clipped, GIB_ORGANIC, NULL, qfalse);
+			ThrowWidowGibLoc (self, "models/objects/gibs/bone/tris.md2", clipped, GIB_ORGANIC, NULL, false);
 		for (n= 0; n < 3; n++)
-			ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", clipped, GIB_ORGANIC, NULL, qfalse);
+			ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", clipped, GIB_ORGANIC, NULL, false);
 		for (n= 0; n < 3; n++)
 		{
 			ThrowWidowGibSized (self, "models/monsters/blackwidow2/gib1/tris.md2", clipped, GIB_METALLIC, NULL,
-				0, qfalse);
+				0, false);
 			ThrowWidowGibSized (self, "models/monsters/blackwidow2/gib2/tris.md2", clipped, GIB_METALLIC, NULL, 
-				gi.soundindex ("misc/fhit3.wav"), qfalse);
+				gi.soundindex ("misc/fhit3.wav"), false);
 		}
 		for (n= 0; n < 2; n++)
 		{
 			ThrowWidowGibSized (self, "models/monsters/blackwidow2/gib3/tris.md2", clipped, GIB_METALLIC, NULL, 
-				0, qfalse);
+				0, false);
 			ThrowWidowGibSized (self, "models/monsters/blackwidow/gib3/tris.md2", clipped, GIB_METALLIC, NULL, 
-				0, qfalse);
+				0, false);
 		}
 		ThrowGib (self, "models/objects/gibs/chest/tris.md2", clipped, GIB_ORGANIC);
 		ThrowHead (self, "models/objects/gibs/head2/tris.md2", clipped, GIB_ORGANIC);
@@ -998,7 +998,7 @@ void widow2_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damag
 	self->monsterinfo.currentmove = &widow2_move_death;
 }
 
-qboolean Widow2_CheckAttack (edict_t *self)
+bool Widow2_CheckAttack (edict_t *self)
 {
 	vec3_t		spot1, spot2;
 	vec3_t		temp;
@@ -1010,7 +1010,7 @@ qboolean Widow2_CheckAttack (edict_t *self)
 	vec3_t		f, r, u;
 
 	if (!self->enemy)
-		return qfalse;
+		return false;
 
 	WidowPowerups(self);
 
@@ -1018,7 +1018,7 @@ qboolean Widow2_CheckAttack (edict_t *self)
 	{
 		self->monsterinfo.aiflags |= AI_BLOCKED;
 		self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 
 	if (self->enemy->health > 0)
@@ -1038,12 +1038,12 @@ qboolean Widow2_CheckAttack (edict_t *self)
 			if (self->enemy->client && SELF_SLOTS_LEFT >= 2)
 			{
 				self->monsterinfo.attack_state = AS_BLIND;
-				return qtrue;
+				return true;
 			}
 
 			// PGM - we want them to go ahead and shoot at info_notnulls if they can.
 			if (self->enemy->solid != SOLID_NOT || tr.fraction < 1.0)		//PGM
-				return qfalse;
+				return false;
 		}
 	}
 
@@ -1068,19 +1068,19 @@ qboolean Widow2_CheckAttack (edict_t *self)
 
 				// be nice in easy mode
 				if (skill->value == 0 && (rand()&3) )
-					return qfalse;
+					return false;
 
 				if (self->monsterinfo.melee)
 					self->monsterinfo.attack_state = AS_MELEE;
 				else
 					self->monsterinfo.attack_state = AS_MISSILE;
-				return qtrue;
+				return true;
 			}
 		}
 	}
 	
 	if (level.time < self->monsterinfo.attack_finished)
-		return qfalse;
+		return false;
 		
 	if (self->monsterinfo.aiflags & AI_STAND_GROUND)
 	{
@@ -1104,10 +1104,10 @@ qboolean Widow2_CheckAttack (edict_t *self)
 	{
 		self->monsterinfo.attack_state = AS_MISSILE;
 //		self->monsterinfo.attack_finished = level.time + 1.0 + 2*random();
-		return qtrue;
+		return true;
 	}
 
-	return qfalse;
+	return false;
 }
 
 void Widow2Precache ()
@@ -1250,20 +1250,20 @@ void widow_gib_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t
 
 void ThrowWidowGib (edict_t *self, char *gibname, int damage, int type)
 {
-	ThrowWidowGibReal (self, gibname, damage, type, NULL, qfalse, 0, qtrue);
+	ThrowWidowGibReal (self, gibname, damage, type, NULL, false, 0, true);
 }
 
-void ThrowWidowGibLoc (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, qboolean fade)
+void ThrowWidowGibLoc (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, bool fade)
 {
-	ThrowWidowGibReal (self, gibname, damage, type, startpos, qfalse, 0, fade);
+	ThrowWidowGibReal (self, gibname, damage, type, startpos, false, 0, fade);
 }
 
-void ThrowWidowGibSized (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, int hitsound, qboolean fade)
+void ThrowWidowGibSized (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, int hitsound, bool fade)
 {
-	ThrowWidowGibReal (self, gibname, damage, type, startpos, qtrue, hitsound, fade);
+	ThrowWidowGibReal (self, gibname, damage, type, startpos, true, hitsound, fade);
 }
 
-void ThrowWidowGibReal (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, qboolean sized, int hitsound, qboolean fade)
+void ThrowWidowGibReal (edict_t *self, char *gibname, int damage, int type, vec3_t startpos, bool sized, int hitsound, bool fade)
 {
 	edict_t *gib;
 	vec3_t	vd;
@@ -1413,9 +1413,9 @@ void ThrowSmallStuff (edict_t *self, vec3_t point)
 	int n;
 
 	for (n= 0; n < 2; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, point, qfalse);
-	ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, point, qfalse);
-	ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, point, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, point, false);
+	ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, point, false);
+	ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, point, false);
 
 }
 
@@ -1430,11 +1430,11 @@ void ThrowMoreStuff (edict_t *self, vec3_t point)
 	}
 
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, point, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, point, false);
 	for (n= 0; n < 2; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, point, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, point, false);
 	for (n= 0; n < 3; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, point, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, point, false);
 
 }
 
@@ -1568,11 +1568,11 @@ void WidowExplosion1 (edict_t *self)
 	gi.multicast (self->s.origin, MULTICAST_ALL);
 	
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, false);
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, false);
 	for (n= 0; n < 2; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, false);
 }
 
 void WidowExplosion2 (edict_t *self)
@@ -1592,11 +1592,11 @@ void WidowExplosion2 (edict_t *self)
 	gi.multicast (self->s.origin, MULTICAST_ALL);
 	
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, false);
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, false);
 	for (n= 0; n < 2; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, false);
 }
 
 void WidowExplosion3 (edict_t *self)
@@ -1616,11 +1616,11 @@ void WidowExplosion3 (edict_t *self)
 	gi.multicast (self->s.origin, MULTICAST_ALL);
 	
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, false);
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, false);
 	for (n= 0; n < 2; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, false);
 }
 
 void WidowExplosion4 (edict_t *self)
@@ -1640,11 +1640,11 @@ void WidowExplosion4 (edict_t *self)
 	gi.multicast (self->s.origin, MULTICAST_ALL);
 	
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, false);
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, false);
 	for (n= 0; n < 2; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, false);
 }
 
 void WidowExplosion5 (edict_t *self)
@@ -1664,11 +1664,11 @@ void WidowExplosion5 (edict_t *self)
 	gi.multicast (self->s.origin, MULTICAST_ALL);
 	
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, false);
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, false);
 	for (n= 0; n < 2; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, false);
 }
 
 void WidowExplosion6 (edict_t *self)
@@ -1688,11 +1688,11 @@ void WidowExplosion6 (edict_t *self)
 	gi.multicast (self->s.origin, MULTICAST_ALL);
 	
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, false);
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, false);
 	for (n= 0; n < 2; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, false);
 }
 
 void WidowExplosion7 (edict_t *self)
@@ -1712,11 +1712,11 @@ void WidowExplosion7 (edict_t *self)
 	gi.multicast (self->s.origin, MULTICAST_ALL);
 	
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, false);
 	for (n= 0; n < 1; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, false);
 	for (n= 0; n < 2; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 300, GIB_METALLIC, startpoint, false);
 }
 
 void WidowExplosionLeg (edict_t *self)
@@ -1737,9 +1737,9 @@ void WidowExplosionLeg (edict_t *self)
 	gi.multicast (self->s.origin, MULTICAST_ALL);
 
 	ThrowWidowGibSized (self, "models/monsters/blackwidow2/gib2/tris.md2", 200, GIB_METALLIC, startpoint, 
-		gi.soundindex ("misc/fhit3.wav"), qfalse);
-	ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, qfalse);
-	ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, qfalse);
+		gi.soundindex ("misc/fhit3.wav"), false);
+	ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, false);
+	ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, false);
 
 	G_ProjectSource2 (self->s.origin, offset2, f, r, u, startpoint);
 
@@ -1749,9 +1749,9 @@ void WidowExplosionLeg (edict_t *self)
 	gi.multicast (self->s.origin, MULTICAST_ALL);
 
 	ThrowWidowGibSized (self, "models/monsters/blackwidow2/gib1/tris.md2", 300, GIB_METALLIC, startpoint,
-		gi.soundindex ("misc/fhit3.wav"), qfalse);
-	ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, qfalse);
-	ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, qfalse);
+		gi.soundindex ("misc/fhit3.wav"), false);
+	ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, false);
+	ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, false);
 }
 
 void ThrowArm1 (edict_t *self)
@@ -1769,7 +1769,7 @@ void ThrowArm1 (edict_t *self)
 	gi.multicast (self->s.origin, MULTICAST_ALL);
 
 	for (n= 0; n < 2; n++)
-		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, qfalse);
+		ThrowWidowGibLoc (self, "models/objects/gibs/sm_metal/tris.md2", 100, GIB_METALLIC, startpoint, false);
 }
 
 void ThrowArm2 (edict_t *self)
@@ -1782,6 +1782,6 @@ void ThrowArm2 (edict_t *self)
 	G_ProjectSource2 (self->s.origin, offset1, f, r, u, startpoint);
 
 	ThrowWidowGibSized (self, "models/monsters/blackwidow2/gib4/tris.md2", 200, GIB_METALLIC, startpoint, 
-		gi.soundindex ("misc/fhit3.wav"), qfalse);
-	ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, qfalse);
+		gi.soundindex ("misc/fhit3.wav"), false);
+	ThrowWidowGibLoc (self, "models/objects/gibs/sm_meat/tris.md2", 300, GIB_ORGANIC, startpoint, false);
 }

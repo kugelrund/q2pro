@@ -9,7 +9,7 @@ hover
 #include "g_local.h"
 #include "m_hover.h"
 
-qboolean visible (edict_t *self, edict_t *other);
+bool visible (edict_t *self, edict_t *other);
 
 
 static int	sound_pain1;
@@ -695,12 +695,12 @@ void hover_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage
 
 //===========
 //PGM
-qboolean hover_blocked (edict_t *self, float dist)
+bool hover_blocked (edict_t *self, float dist)
 {
 	if(blocked_checkshot (self, 0.25 + (0.05 * skill->value) ))
-		return qtrue;
+		return true;
 
-	return qfalse;
+	return false;
 }
 //PGM
 //===========

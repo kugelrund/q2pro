@@ -126,7 +126,7 @@ SV_EdictIsVisible
 Checks if edict is potentially visible from the given PVS row.
 ===============
 */
-qboolean SV_EdictIsVisible(cm_t *cm, edict_t *ent, byte *mask)
+bool SV_EdictIsVisible(cm_t *cm, edict_t *ent, byte *mask)
 {
     int i;
 
@@ -138,11 +138,11 @@ qboolean SV_EdictIsVisible(cm_t *cm, edict_t *ent, byte *mask)
     // check individual leafs
     for (i = 0; i < ent->num_clusters; i++) {
         if (Q_IsBitSet(mask, ent->clusternums[i])) {
-            return qtrue;
+            return true;
         }
     }
 
-    return qfalse;  // not visible
+    return false;   // not visible
 }
 
 /*
@@ -579,4 +579,3 @@ trace_t q_gameabi SV_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end,
     SV_ClipMoveToEntities(start, mins, maxs, end, passedict, contentmask, &trace);
     return trace;
 }
-

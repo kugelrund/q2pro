@@ -17,7 +17,7 @@ TURRET
 #define SPAWN_INSTANT_WEAPON	0x0050
 #define SPAWN_WALL_UNIT			0x0080
 
-extern qboolean FindTarget (edict_t *self);
+extern bool FindTarget (edict_t *self);
 
 void turret_run (edict_t *self);
 void TurretAim (edict_t *self);
@@ -764,7 +764,7 @@ void turret_activate (edict_t *self, edict_t *other, edict_t *activator)
 
 // PMM
 // checkattack .. ignore range, just attack if available
-qboolean turret_checkattack (edict_t *self)
+bool turret_checkattack (edict_t *self)
 {
 	vec3_t	spot1, spot2;
 	float	chance, nexttime;
@@ -794,12 +794,12 @@ qboolean turret_checkattack (edict_t *self)
 					{
 						if (level.time < self->monsterinfo.attack_finished)
 						{
-							return qfalse;
+							return false;
 						}
 						if (level.time < (self->monsterinfo.trail_time + self->monsterinfo.blind_fire_delay))
 						{
 							// wait for our time
-							return qfalse;
+							return false;
 						}
 						else
 						{
@@ -807,23 +807,23 @@ qboolean turret_checkattack (edict_t *self)
 							tr = gi.trace (spot1, NULL, NULL, self->monsterinfo.blind_fire_target, self, CONTENTS_MONSTER);
 							if (tr.allsolid || tr.startsolid || ((tr.fraction < 1.0) && (tr.ent != self->enemy)))
 							{
-								return qfalse;
+								return false;
 							}
 
 							self->monsterinfo.attack_state = AS_BLIND;
 							self->monsterinfo.attack_finished = level.time + 0.5 + 2*random();
-							return qtrue;
+							return true;
 						}
 					}
 				}
 				// pmm
-				return qfalse;
+				return false;
 			}
 		}
 	}
 	
 	if (level.time < self->monsterinfo.attack_finished)
-		return qfalse;
+		return false;
 
 	enemy_range = range(self, self->enemy);
 
@@ -831,9 +831,9 @@ qboolean turret_checkattack (edict_t *self)
 	{
 		// don't always melee in easy mode
 		if (skill->value == 0 && (rand()&3) )
-			return qfalse;
+			return false;
 		self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 	
 	if (self->spawnflags & SPAWN_ROCKET)
@@ -864,12 +864,12 @@ qboolean turret_checkattack (edict_t *self)
 		self->monsterinfo.attack_state = AS_MISSILE;
 //		self->monsterinfo.attack_finished = level.time + 0.3 + 2*random();
 		self->monsterinfo.attack_finished = level.time + nexttime;
-		return qtrue;
+		return true;
 	}
 
 	self->monsterinfo.attack_state = AS_STRAIGHT;
 
-	return qfalse;
+	return false;
 }
 
 
@@ -1038,5 +1038,5 @@ void SP_monster_turret (edict_t *self)
 	self->monsterinfo.aiflags |= AI_IGNORE_SHOTS;
 	// PMM - blindfire
 	if(self->spawnflags & (SPAWN_ROCKET|SPAWN_BLASTER))
-		self->monsterinfo.blindfire = qtrue;
+		self->monsterinfo.blindfire = true;
 }

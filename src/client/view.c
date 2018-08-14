@@ -176,7 +176,7 @@ static void V_TestParticles(void)
                            cl.v_right[j] * r + cl.v_up[j] * u;
 
         p->color = 8;
-        p->alpha = cl_testparticles->value;
+        p->alpha = 1;
     }
 }
 
@@ -477,9 +477,9 @@ V_Viewpos_f
 */
 static void V_Viewpos_f(void)
 {
-    Com_Printf("(%i %i %i) : %i\n", (int)cl.refdef.vieworg[0],
-               (int)cl.refdef.vieworg[1], (int)cl.refdef.vieworg[2],
-               (int)cl.refdef.viewangles[YAW]);
+    Com_Printf("(%.f %.f %.f) : %.f\n", cl.refdef.vieworg[0],
+               cl.refdef.vieworg[1], cl.refdef.vieworg[2],
+               cl.refdef.viewangles[YAW]);
 }
 
 static const cmdreg_t v_cmds[] = {
@@ -530,6 +530,3 @@ void V_Shutdown(void)
 {
     Cmd_Deregister(v_cmds);
 }
-
-
-

@@ -8,7 +8,7 @@
 void SpeedrunResetTimer();
 void SpeedrunUpdateTimer();
 void SpeedrunUnpauseTimer();
-qboolean SpeedrunPauseTimer();
+int SpeedrunPauseTimer();
 void SpeedrunLevelFinished();
 void SpeedrunGetTotalTimeString(int accuracy,
                                 char time_string[static SPEEDRUN_TIME_LENGTH]);

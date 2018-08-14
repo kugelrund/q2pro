@@ -23,30 +23,12 @@
 # Enable OpenAL sound engine.
 #CONFIG_OPENAL=y
 
-# Enable SDL 2 support instead of SDL 1.
-#CONFIG_SDL2=y
-
 # Enable direct sound driver (DirectSound on Windows, OSS on Linux). This
 # option has no effect if CONFIG_NO_SOFTWARE_SOUND is set.
 #CONFIG_DIRECT_SOUND=y
 
-# Enable direct mouse driver (DirectInput on Windows, evdev kernel interface on
-# Linux). NOTE: you don't normally need this on Windows (raw input is preferred
-# and enabled by default). This option has no effect if CONFIG_SDL2 is set.
-#CONFIG_DIRECT_INPUT=y
-
-# Enable reading input events from LIRC by linking against liblirc_client.
-# This option has no effect on Windows.
-#CONFIG_LIRC=y
-
-# Enable X11 support in SDL 1 video driver by linking against libX11. Currently,
-# this enables GLX_SGI_video_sync extension and allows pasting text into client
-# console from the X selection buffer. This option has no effect on Windows or
-# if CONFIG_SDL2 is set.
-#CONFIG_X11=y
-
-# Build software renderer instead of OpenGL renderer.
-#CONFIG_SOFTWARE_RENDERER=y
+# Enable when building for systems that support OpenGL ES 1.1 only (e.g. Raspberry Pi)
+#CONFIG_GLES=y
 
 # Specify default list of fullscreen modes. Note: modes are automatically
 # detected on Windows. Default list is only used when autodetection fails.
@@ -58,11 +40,6 @@
 # Disable default Quake 2 software sound engine. Only makes sense when
 # CONFIG_OPENAL is set.
 #CONFIG_NO_SOFTWARE_SOUND=y
-
-# Disable automatic discovery of evdev device nodes by not linking
-# against libudev. This option has no effect on platforms other than Linux.
-# This option has no effect unless CONFIG_DIRECT_INPUT is set.
-#CONFIG_NO_UDEV=y
 
 # Disable menu-based user interface. This disables scriptable menus, as well as
 # demo and server browsers.

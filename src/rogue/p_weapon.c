@@ -4,14 +4,14 @@
 #include "m_player.h"
 
 
-static qboolean	is_quad;
+static bool	is_quad;
 static byte		is_silenced;
 
 //PGM
 static byte		damage_multiplier;
 //PGM
 
-void weapon_grenade_fire (edict_t *ent, qboolean held);
+void weapon_grenade_fire (edict_t *ent, bool held);
 
 //========
 //ROGUE
@@ -150,7 +150,7 @@ void PlayerNoise(edict_t *who, vec3_t where, int type)
 }
 
 
-qboolean Pickup_Weapon (edict_t *ent, edict_t *other)
+bool Pickup_Weapon (edict_t *ent, edict_t *other)
 {
 	int			index;
 	gitem_t		*ammo;
@@ -161,7 +161,7 @@ qboolean Pickup_Weapon (edict_t *ent, edict_t *other)
 		&& other->client->pers.inventory[index])
 	{
 		if (!(ent->spawnflags & (DROPPED_ITEM | DROPPED_PLAYER_ITEM) ) )
-			return qfalse;	// leave the weapon for others to pickup
+			return false;	// leave the weapon for others to pickup
 	}
 
 	other->client->pers.inventory[index]++;
@@ -198,7 +198,7 @@ qboolean Pickup_Weapon (edict_t *ent, edict_t *other)
 		( !deathmatch->value || other->client->pers.weapon == FindItem("blaster") ) )
 		other->client->newweapon = ent->item;
 
-	return qtrue;
+	return true;
 }
 
 
@@ -218,7 +218,7 @@ void ChangeWeapon (edict_t *ent)
 	{
 		ent->client->grenade_time = level.time;
 		ent->client->weapon_sound = 0;
-		weapon_grenade_fire (ent, qfalse);
+		weapon_grenade_fire (ent, false);
 		ent->client->grenade_time = 0;
 	}
 
@@ -610,7 +610,7 @@ GRENADE
 #define GRENADE_MINSPEED	400
 #define GRENADE_MAXSPEED	800
 
-void weapon_grenade_fire (edict_t *ent, qboolean held)
+void weapon_grenade_fire (edict_t *ent, bool held)
 {
 	vec3_t	offset;
 	vec3_t	forward, right, up;
@@ -755,8 +755,8 @@ void Weapon_Grenade (edict_t *ent)
 			if (!ent->client->grenade_blew_up && level.time >= ent->client->grenade_time)
 			{
 				ent->client->weapon_sound = 0;
-				weapon_grenade_fire (ent, qtrue);
-				ent->client->grenade_blew_up = qtrue;
+				weapon_grenade_fire (ent, true);
+				ent->client->grenade_blew_up = true;
 			}
 
 			if (ent->client->buttons & BUTTON_ATTACK)
@@ -767,7 +767,7 @@ void Weapon_Grenade (edict_t *ent)
 				if (level.time >= ent->client->grenade_time)
 				{
 					ent->client->ps.gunframe = 15;
-					ent->client->grenade_blew_up = qfalse;
+					ent->client->grenade_blew_up = false;
 				}
 				else
 				{
@@ -779,7 +779,7 @@ void Weapon_Grenade (edict_t *ent)
 		if (ent->client->ps.gunframe == 12)
 		{
 			ent->client->weapon_sound = 0;
-			weapon_grenade_fire (ent, qfalse);
+			weapon_grenade_fire (ent, false);
 		}
 
 		if ((ent->client->ps.gunframe == 15) && (level.time < ent->client->grenade_time))
@@ -802,7 +802,7 @@ void Weapon_Grenade (edict_t *ent)
 //									15                      48						5						11					12				29,34,39,48
 void Throw_Generic (edict_t *ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int FRAME_THROW_SOUND,
 					int FRAME_THROW_HOLD, int FRAME_THROW_FIRE, int *pause_frames, int EXPLODE,
-					void (*fire)(edict_t *ent, qboolean held))
+					void (*fire)(edict_t *ent, bool held))
 {
 	int n;
 
@@ -886,8 +886,8 @@ void Throw_Generic (edict_t *ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int 
 			if (EXPLODE && !ent->client->grenade_blew_up && level.time >= ent->client->grenade_time)
 			{
 				ent->client->weapon_sound = 0;
-				fire (ent, qtrue);
-				ent->client->grenade_blew_up = qtrue;
+				fire (ent, true);
+				ent->client->grenade_blew_up = true;
 			}
 
 			if (ent->client->buttons & BUTTON_ATTACK)
@@ -898,7 +898,7 @@ void Throw_Generic (edict_t *ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int 
 				if (level.time >= ent->client->grenade_time)
 				{
 					ent->client->ps.gunframe = FRAME_FIRE_LAST;
-					ent->client->grenade_blew_up = qfalse;
+					ent->client->grenade_blew_up = false;
 				}
 				else
 				{
@@ -910,7 +910,7 @@ void Throw_Generic (edict_t *ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int 
 		if (ent->client->ps.gunframe == FRAME_THROW_FIRE)
 		{
 			ent->client->weapon_sound = 0;
-			fire (ent, qtrue);
+			fire (ent, true);
 		}
 
 		if ((ent->client->ps.gunframe == FRAME_FIRE_LAST) && (level.time < ent->client->grenade_time))
@@ -1122,7 +1122,7 @@ BLASTER / HYPERBLASTER
 ======================================================================
 */
 
-void Blaster_Fire (edict_t *ent, vec3_t g_offset, int damage, qboolean hyper, int effect)
+void Blaster_Fire (edict_t *ent, vec3_t g_offset, int damage, bool hyper, int effect)
 {
 	vec3_t	forward, right;
 	vec3_t	start;
@@ -1163,7 +1163,7 @@ void Weapon_Blaster_Fire (edict_t *ent)
 		damage = 15;
 	else
 		damage = 10;
-	Blaster_Fire (ent, vec3_origin, damage, qfalse, EF_BLASTER);
+	Blaster_Fire (ent, vec3_origin, damage, false, EF_BLASTER);
 	ent->client->ps.gunframe++;
 }
 
@@ -1215,7 +1215,7 @@ void Weapon_HyperBlaster_Fire (edict_t *ent)
 				damage = 15;
 			else
 				damage = 20;
-			Blaster_Fire (ent, offset, damage, qtrue, effect);
+			Blaster_Fire (ent, offset, damage, true, effect);
 			if (! ( (int)dmflags->value & DF_INFINITE_AMMO ) )
 				ent->client->pers.inventory[ent->client->ammo_index]--;
 
@@ -2177,7 +2177,7 @@ void Heatbeam_Fire (edict_t *ent)
 	// This offset is the entity offset
 	VectorSet(offset, 2, 7, -3);
 
-	fire_heat (ent, start, forward, offset, damage, kick, qfalse);
+	fire_heat (ent, start, forward, offset, damage, kick, false);
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);

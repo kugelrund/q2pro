@@ -10,7 +10,7 @@ jorg
 #include "m_boss31.h"
 
 extern void SP_monster_makron (edict_t *self);
-qboolean visible (edict_t *self, edict_t *other);
+bool visible (edict_t *self, edict_t *other);
 
 static int	sound_pain1;
 static int	sound_pain2;
@@ -571,7 +571,7 @@ void jorg_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage,
 	self->monsterinfo.currentmove = &jorg_move_death;
 }
 
-qboolean Jorg_CheckAttack (edict_t *self)
+bool Jorg_CheckAttack (edict_t *self)
 {
 	vec3_t	spot1, spot2;
 	vec3_t	temp;
@@ -592,7 +592,7 @@ qboolean Jorg_CheckAttack (edict_t *self)
 
 		// do we have a clear shot?
 		if (tr.ent != self->enemy)
-			return qfalse;
+			return false;
 	}
 	
 	enemy_range = range(self, self->enemy);
@@ -609,18 +609,18 @@ qboolean Jorg_CheckAttack (edict_t *self)
 			self->monsterinfo.attack_state = AS_MELEE;
 		else
 			self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 	
 // missile attack
 	if (!self->monsterinfo.attack)
-		return qfalse;
+		return false;
 		
 	if (level.time < self->monsterinfo.attack_finished)
-		return qfalse;
+		return false;
 		
 	if (enemy_range == RANGE_FAR)
-		return qfalse;
+		return false;
 
 	if (self->monsterinfo.aiflags & AI_STAND_GROUND)
 	{
@@ -640,14 +640,14 @@ qboolean Jorg_CheckAttack (edict_t *self)
 	}
 	else
 	{
-		return qfalse;
+		return false;
 	}
 
 	if (random () < chance)
 	{
 		self->monsterinfo.attack_state = AS_MISSILE;
 		self->monsterinfo.attack_finished = level.time + 2*random();
-		return qtrue;
+		return true;
 	}
 
 	if (self->flags & FL_FLY)
@@ -658,7 +658,7 @@ qboolean Jorg_CheckAttack (edict_t *self)
 			self->monsterinfo.attack_state = AS_STRAIGHT;
 	}
 
-	return qfalse;
+	return false;
 }
 
 

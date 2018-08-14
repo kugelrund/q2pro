@@ -57,13 +57,13 @@ static jmp_buf  com_abortframe;    // an ERR_DROP occured, exit the entire frame
 static void     (*com_abort_func)(void *);
 static void     *com_abort_arg;
 
-static qboolean com_errorEntered;
+static bool     com_errorEntered;
 static char     com_errorMsg[MAXERRORMSG]; // from Com_Printf/Com_Error
 
 static int      com_printEntered;
 
 static qhandle_t    com_logFile;
-static qboolean     com_logNewline;
+static bool         com_logNewline;
 
 static char     **com_argv;
 static int      com_argc;
@@ -114,7 +114,7 @@ const char  com_version_string[] =
 unsigned    com_framenum;
 unsigned    com_eventTime;
 unsigned    com_localTime;
-qboolean    com_initialized;
+bool        com_initialized;
 time_t      com_startTime;
 
 #if USE_CLIENT
@@ -230,7 +230,7 @@ static void logfile_open(void)
     }
 
     com_logFile = f;
-    com_logNewline = qtrue;
+    com_logNewline = true;
     Com_Printf("Logging console to %s\n", buffer);
 }
 
@@ -285,7 +285,7 @@ static void logfile_write(print_type_t type, const char *s)
     char buf[MAX_QPATH];
     char *p, *maxp;
     size_t len;
-    ssize_t ret;
+    int ret;
     int c;
 
     if (logfile_prefix->string[0]) {
@@ -317,7 +317,7 @@ static void logfile_write(print_type_t type, const char *s)
                 memcpy(p, buf, len);
                 p += len;
             }
-            com_logNewline = qfalse;
+            com_logNewline = false;
         }
 
         if (p == maxp) {
@@ -326,7 +326,7 @@ static void logfile_write(print_type_t type, const char *s)
 
         c = *s++;
         if (c == '\n') {
-            com_logNewline = qtrue;
+            com_logNewline = true;
         } else {
             c = Q_charascii(c);
         }
@@ -433,7 +433,7 @@ void Com_LPrintf(print_type_t type, const char *fmt, ...)
             Com_SetColor(COLOR_ALT);
             break;
         case PRINT_DEVELOPER:
-            Com_SetColor(COLOR_BLUE);
+            Com_SetColor(COLOR_GREEN);
             break;
         case PRINT_WARNING:
             Com_SetColor(COLOR_YELLOW);
@@ -495,7 +495,7 @@ void Com_Error(error_type_t code, const char *fmt, ...)
         Sys_Error("recursive error after: %s", com_errorMsg);
     }
 
-    com_errorEntered = qtrue;
+    com_errorEntered = true;
 
     va_start(argptr, fmt);
     len = Q_vscnprintf(msg, sizeof(msg), fmt, argptr);
@@ -567,7 +567,7 @@ abort:
     if (com_logFile) {
         FS_Flush(com_logFile);
     }
-    com_errorEntered = qfalse;
+    com_errorEntered = false;
     longjmp(com_abortframe, -1);
 }
 
@@ -747,7 +747,7 @@ void Com_Generic_c(genctx_t *ctx, int argnum)
     }
 
     // protect against possible duplicates
-    ctx->ignoredups = qtrue;
+    ctx->ignoredups = true;
 
     s = Cmd_Argv(ctx->argnum - argnum);
 
@@ -789,7 +789,7 @@ the client and server initialize for the first time.
 Other commands are added late, after all initialization is complete.
 ===============
 */
-static void Com_AddEarlyCommands(qboolean clear)
+static void Com_AddEarlyCommands(bool clear)
 {
     int     i;
     char    *s;
@@ -822,17 +822,17 @@ Com_AddLateCommands
 Adds command line parameters as script statements
 Commands lead with a + and continue until another +
 
-Returns qtrue if any late commands were added, which
+Returns true if any late commands were added, which
 will keep the demoloop from immediately starting
 
 Assumes +set commands are already filtered out
 =================
 */
-static qboolean Com_AddLateCommands(void)
+static bool Com_AddLateCommands(void)
 {
     int     i;
     char    *s;
-    qboolean ret = qfalse;
+    bool    ret = false;
 
     for (i = 1; i < com_argc; i++) {
         s = com_argv[i];
@@ -848,7 +848,7 @@ static qboolean Com_AddLateCommands(void)
             Cbuf_AddText(&cmd_buffer, " ");
         }
         Cbuf_AddText(&cmd_buffer, s);
-        ret = qtrue;
+        ret = true;
     }
 
     if (ret) {
@@ -861,7 +861,7 @@ static qboolean Com_AddLateCommands(void)
 
 void Com_AddConfigFile(const char *name, unsigned flags)
 {
-    qerror_t ret;
+    int ret;
 
     ret = Cmd_ExecuteFile(name, flags);
     if (ret == Q_ERR_SUCCESS) {
@@ -968,7 +968,7 @@ void Qcommon_Init(int argc, char **argv)
     // a basedir or cddir needs to be set before execing
     // config files, but we want other parms to override
     // the settings of the config files
-    Com_AddEarlyCommands(qfalse);
+    Com_AddEarlyCommands(false);
 
     Sys_Init();
 
@@ -979,7 +979,7 @@ void Qcommon_Init(int argc, char **argv)
     Sys_RunConsole();
 
     // no longer allow CVAR_NOSET modifications
-    com_initialized = qtrue;
+    com_initialized = true;
 
     // after FS is initialized, open logfile
     logfile_enable->changed = logfile_enable_changed;
@@ -994,7 +994,7 @@ void Qcommon_Init(int argc, char **argv)
     Com_AddConfigFile(COM_AUTOEXEC_CFG, FS_TYPE_REAL | FS_PATH_GAME);
     Com_AddConfigFile(COM_POSTEXEC_CFG, FS_TYPE_REAL);
 
-    Com_AddEarlyCommands(qtrue);
+    Com_AddEarlyCommands(true);
 
     Cmd_AddCommand("lasterror", Com_LastError_f);
 
@@ -1090,7 +1090,7 @@ void Qcommon_Frame(void)
     // spin until msec is non-zero if running a client
     if (!dedicated->integer && !com_timedemo->integer) {
         while (msec < 1) {
-            qboolean break_now = CL_ProcessEvents();
+            bool break_now = CL_ProcessEvents();
             com_eventTime = Sys_Milliseconds();
             msec = com_eventTime - oldtime;
             if (break_now)
@@ -1159,4 +1159,3 @@ void Qcommon_Frame(void)
     }
 #endif
 }
-

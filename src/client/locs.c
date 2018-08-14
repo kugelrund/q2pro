@@ -63,7 +63,7 @@ void LOC_LoadLocations(void)
     int line, count;
     location_t *loc;
     int argc;
-    qerror_t ret;
+    int ret;
 
     // load from main directory
     Q_concat(path, sizeof(path), "locs/", cl.mapname, ".loc", NULL);
@@ -84,7 +84,7 @@ void LOC_LoadLocations(void)
             *p = 0;
         }
 
-        Cmd_TokenizeString(s, qfalse);
+        Cmd_TokenizeString(s, false);
         line++;
 
         argc = Cmd_Argc();
@@ -354,10 +354,10 @@ static void LOC_Write_f(void)
 
     count = 0;
     LIST_FOR_EACH(location_t, loc, &cl_locations, entry) {
-        FS_FPrintf(f, "%d %d %d %s\n",
-                   (int)(loc->origin[0] * 8),
-                   (int)(loc->origin[1] * 8),
-                   (int)(loc->origin[2] * 8),
+        FS_FPrintf(f, "%.f %.f %.f %s\n",
+                   loc->origin[0] * 8,
+                   loc->origin[1] * 8,
+                   loc->origin[2] * 8,
                    loc->name);
         count++;
     }
@@ -387,4 +387,3 @@ void LOC_Init(void)
     Cmd_AddCommand("loc_update", LOC_Update_f);
     Cmd_AddCommand("loc_write", LOC_Write_f);
 }
-

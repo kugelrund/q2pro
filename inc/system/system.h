@@ -62,7 +62,18 @@ void    Sys_ListFiles_r(listfiles_t *list, const char *path, int depth);
 void    Sys_DebugBreak(void);
 
 #if USE_AC_CLIENT
-qboolean Sys_GetAntiCheatAPI(void);
+bool Sys_GetAntiCheatAPI(void);
+#endif
+
+#if USE_CLIENT
+typedef struct asyncwork_s {
+    void (*work_cb)(void *);
+    void (*done_cb)(void *);
+    void *cb_arg;
+    struct asyncwork_s *next;
+} asyncwork_t;
+
+void Sys_QueueAsyncWork(asyncwork_t *work);
 #endif
 
 extern cvar_t   *sys_basedir;

@@ -8,7 +8,7 @@ int stored_total_time = 0;
 int stored_level_time = 0;
 volatile int current_total_time = 0;
 volatile int current_level_time = 0;
-qboolean paused = qtrue;
+bool paused = true;
 
 void SpeedrunResetTimer()
 {
@@ -17,7 +17,7 @@ void SpeedrunResetTimer()
 	stored_level_time = 0;
 	current_total_time = 0;
 	current_level_time = 0;
-	paused = qtrue;
+	paused = true;
 }
 
 void SpeedrunUpdateTimer()
@@ -36,7 +36,7 @@ void SpeedrunUnpauseTimer()
 {
 	if (paused)
 	{
-		paused = qfalse;
+		paused = false;
 		last_timestamp = Sys_Milliseconds();
 	}
 }
@@ -51,16 +51,16 @@ void SpeedrunStoreCurrentTime()
 	last_timestamp = current_timestamp;
 }
 
-qboolean SpeedrunPauseTimer()
+int SpeedrunPauseTimer()
 {
 	if (paused)
 	{
-		return qtrue;
+		return true;
 	}
 
 	SpeedrunStoreCurrentTime();
-	paused = qtrue;
-	return qfalse;
+	paused = true;
+	return false;
 }
 
 void SpeedrunLevelFinished()

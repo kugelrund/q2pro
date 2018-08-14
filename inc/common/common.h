@@ -54,8 +54,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #define CONST_STR_LEN(x) x, x ? sizeof(x) - 1 : 0
 
-#define __STRINGIFY(x)  #x
-#define STRINGIFY(x)    __STRINGIFY(x)
+#define STRINGIFY2(x)   #x
+#define STRINGIFY(x)    STRINGIFY2(x)
 
 typedef struct {
     const char *name;
@@ -181,7 +181,7 @@ extern const char   com_version_string[];
 extern unsigned     com_framenum;
 extern unsigned     com_eventTime; // system time of the last event
 extern unsigned     com_localTime; // milliseconds since Q2 startup
-extern qboolean     com_initialized;
+extern bool         com_initialized;
 extern time_t       com_startTime;
 
 void Qcommon_Init(int argc, char **argv);

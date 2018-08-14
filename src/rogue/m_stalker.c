@@ -30,17 +30,17 @@ void stalker_jump_straightup (edict_t *self);
 void stalker_jump_wait_land (edict_t *self);
 void stalker_false_death (edict_t *self);
 void stalker_false_death_start (edict_t *self);
-qboolean stalker_ok_to_transition (edict_t *self);
+bool stalker_ok_to_transition (edict_t *self);
 
 #define STALKER_ON_CEILING(ent)  ( ent->gravityVector[2] > 0 ? 1 : 0 )
 
-//extern qboolean SV_StepDirection (edict_t *ent, float yaw, float dist);
-extern qboolean SV_PointCloseEnough (edict_t *ent, vec3_t goal, float dist);
+//extern bool SV_StepDirection (edict_t *ent, float yaw, float dist);
+extern bool SV_PointCloseEnough (edict_t *ent, vec3_t goal, float dist);
 extern void drawbbox(edict_t *self);
 
 //=========================
 //=========================
-qboolean stalker_ok_to_transition (edict_t *self)
+bool stalker_ok_to_transition (edict_t *self)
 {
 	trace_t		trace;
 	vec3_t		pt, start;
@@ -74,12 +74,12 @@ qboolean stalker_ok_to_transition (edict_t *self)
 		if(STALKER_ON_CEILING(self))
 		{
 			if(trace.plane.normal[2] < 0.9)
-				return qfalse;
+				return false;
 		}
 		else
 		{
 			if(trace.plane.normal[2] > -0.9)
-				return qfalse;
+				return false;
 		}
 	}
 //	gi.dprintf("stalker_check_pt: main check ok\n");
@@ -96,10 +96,10 @@ qboolean stalker_ok_to_transition (edict_t *self)
 	if(trace.fraction == 1.0 || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 	{
 //		gi.dprintf("stalker_check_pt: absmin/absmin failed\n");
-		return qfalse;
+		return false;
 	}
 	if(abs(end_height + margin - trace.endpos[2]) > 8)
-		return qfalse;
+		return false;
 
 	pt[0] = self->absmax[0];
 	pt[1] = self->absmin[1];
@@ -109,10 +109,10 @@ qboolean stalker_ok_to_transition (edict_t *self)
 	if(trace.fraction == 1.0 || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 	{
 //		gi.dprintf("stalker_check_pt: absmax/absmin failed\n");
-		return qfalse;
+		return false;
 	}
 	if(abs(end_height + margin - trace.endpos[2]) > 8)
-		return qfalse;
+		return false;
 
 	pt[0] = self->absmax[0];
 	pt[1] = self->absmax[1];
@@ -122,10 +122,10 @@ qboolean stalker_ok_to_transition (edict_t *self)
 	if(trace.fraction == 1.0 || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 	{
 //		gi.dprintf("stalker_check_pt: absmax/absmax failed\n");
-		return qfalse;
+		return false;
 	}
 	if(abs(end_height + margin - trace.endpos[2]) > 8)
-		return qfalse;
+		return false;
 
 	pt[0] = self->absmin[0];
 	pt[1] = self->absmax[1];
@@ -135,12 +135,12 @@ qboolean stalker_ok_to_transition (edict_t *self)
 	if(trace.fraction == 1.0 || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 	{
 //		gi.dprintf("stalker_check_pt: absmin/absmax failed\n");
-		return qfalse;
+		return false;
 	}
 	if(abs(end_height + margin - trace.endpos[2]) > 8)
-		return qfalse;
+		return false;
 
-	return qtrue;
+	return true;
 }
 
 //=========================
@@ -311,7 +311,7 @@ void stalker_walk (edict_t *self)
 }
 
 // ******************
-// qfalse death
+// false death
 // ******************
 mframe_t stalker_frames_reactivate [] = 
 {
@@ -427,7 +427,7 @@ void stalker_pain (edict_t *self, edict_t *other, float kick, int damage)
 	if (self->groundentity == NULL)
 		return;
 
-	// if we're reactivating or qfalse dying, ignore the pain.
+	// if we're reactivating or false dying, ignore the pain.
 	if (self->monsterinfo.currentmove == &stalker_move_false_death_end ||
 		self->monsterinfo.currentmove == &stalker_move_false_death_start )
 		return;
@@ -444,7 +444,7 @@ void stalker_pain (edict_t *self, edict_t *other, float kick, int damage)
 		{
 			if( !STALKER_ON_CEILING(self) || stalker_ok_to_transition(self) )
 			{
-//				gi.dprintf("starting qfalse death sequence\n");
+//				gi.dprintf("starting false death sequence\n");
 				stalker_false_death_start(self);
 				return;
 			}
@@ -474,7 +474,7 @@ void stalker_pain (edict_t *self, edict_t *other, float kick, int damage)
 // STALKER ATTACK
 // ******************
 
-//extern qboolean infront (edict_t *self, edict_t *other);
+//extern bool infront (edict_t *self, edict_t *other);
 
 void stalker_shoot_attack (edict_t *self)
 {
@@ -695,13 +695,13 @@ int stalker_check_lz (edict_t *self, edict_t *target, vec3_t dest)
 	if( (gi.pointcontents (dest) & MASK_WATER) || (target->waterlevel))
 	{
 //		gi.dprintf ("you won't make me jump in water!\n");
-		return qfalse;
+		return false;
 	}
 
 	if( !target->groundentity )
 	{
 //		gi.dprintf( "I'll wait until you land..\n");
-		return qfalse;
+		return false;
 	}
 
 	// check under the player's four corners
@@ -710,24 +710,24 @@ int stalker_check_lz (edict_t *self, edict_t *target, vec3_t dest)
 	jumpLZ[1] = self->enemy->mins[1];
 	jumpLZ[2] = self->enemy->mins[2] - 0.25;
 	if( !(gi.pointcontents (jumpLZ) & MASK_SOLID) )
-		return qfalse;
+		return false;
 
 	jumpLZ[0] = self->enemy->maxs[0];
 	jumpLZ[1] = self->enemy->mins[1];
 	if( !(gi.pointcontents (jumpLZ) & MASK_SOLID) )
-		return qfalse;
+		return false;
 
 	jumpLZ[0] = self->enemy->maxs[0];
 	jumpLZ[1] = self->enemy->maxs[1];
 	if( !(gi.pointcontents (jumpLZ) & MASK_SOLID) )
-		return qfalse;
+		return false;
 
 	jumpLZ[0] = self->enemy->mins[0];
 	jumpLZ[1] = self->enemy->maxs[1];
 	if( !(gi.pointcontents (jumpLZ) & MASK_SOLID) )
-		return qfalse;
+		return false;
 
-	return qtrue;
+	return true;
 }
 
 // ====================
@@ -745,24 +745,24 @@ int stalker_do_pounce(edict_t *self, vec3_t dest)
 
 	// don't pounce when we're on the ceiling
 	if(STALKER_ON_CEILING(self))
-		return qfalse;
+		return false;
 
 	if(!stalker_check_lz (self, self->enemy, dest))
-		return qfalse;
+		return false;
 
 	VectorSubtract(dest, self->s.origin, dist);
 	
 	// make sure we're pointing in that direction 15deg margin of error.
 	vectoangles2 (dist, jumpAngles);
 	if(abs(jumpAngles[YAW] - self->s.angles[YAW]) > 45)
-		return qfalse;			// not facing the player...
+		return false;			// not facing the player...
 
 	self->ideal_yaw = jumpAngles[YAW];
 	M_ChangeYaw(self);
 
 	length = VectorLength(dist);
 	if(length > 450)
-		return qfalse;			// can't jump that far...
+		return false;			// can't jump that far...
 
 	VectorCopy(dest, jumpLZ);
 
@@ -1021,49 +1021,49 @@ void stalker_jump (edict_t *self)
 // Blocked
 // ******************
 
-qboolean stalker_blocked (edict_t *self, float dist)
+bool stalker_blocked (edict_t *self, float dist)
 {
-	qboolean	onCeiling;
+	bool	onCeiling;
 
 //	gi.dprintf("stalker_blocked\n");
 	if(!has_valid_enemy(self))
-		return qfalse;
+		return false;
 
-	onCeiling = qfalse;
+	onCeiling = false;
 	if(self->gravityVector[2] > 0)
-		onCeiling = qtrue;
+		onCeiling = true;
 
 	if(!onCeiling)
 	{
 		if(blocked_checkshot(self, 0.25 + (0.05 * skill->value) ))
 		{
 //			gi.dprintf("blocked: shooting\n");
-			return qtrue;
+			return true;
 		}
 
 		if(visible (self, self->enemy))
 		{
 //			gi.dprintf("blocked: jumping at player!\n");
 			stalker_do_pounce(self, self->enemy->s.origin);
-			return qtrue;
+			return true;
 		}
 
 		if(blocked_checkjump (self, dist, 256, 68))
 		{
 //			gi.dprintf("blocked: jumping up/down\n");
 			stalker_jump (self);
-			return qtrue;
+			return true;
 		}
 
 		if(blocked_checkplat (self, dist))
-			return qtrue;
+			return true;
 	}
 	else
 	{
 		if(blocked_checkshot(self, 0.25 + (0.05 * skill->value) ))
 		{
 //			gi.dprintf("blocked: shooting\n");
-			return qtrue;
+			return true;
 		}	
 		else if(stalker_ok_to_transition(self))
 		{
@@ -1074,13 +1074,13 @@ qboolean stalker_blocked (edict_t *self, float dist)
 			self->groundentity = NULL;
 			
 //			gi.dprintf("falling off ceiling\n");
-			return qtrue;
+			return true;
 		}
 //		else
 //			gi.dprintf("Not OK to fall!\n");
 	}
 
-	return qfalse;
+	return false;
 }
 
 // ******************

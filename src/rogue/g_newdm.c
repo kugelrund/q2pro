@@ -61,10 +61,10 @@ void InitGameRules(void)
 #define IT_TYPE_MASK	(IT_WEAPON|IT_AMMO|IT_POWERUP|IT_ARMOR|IT_KEY)
 
 extern void ED_CallSpawn (edict_t *ent);
-extern qboolean Pickup_Health (edict_t *ent, edict_t *other);
-extern qboolean Pickup_Adrenaline (edict_t *ent, edict_t *other);
-extern qboolean Pickup_Armor (edict_t *ent, edict_t *other);
-extern qboolean Pickup_PowerArmor (edict_t *ent, edict_t *other);
+extern bool Pickup_Health (edict_t *ent, edict_t *other);
+extern bool Pickup_Adrenaline (edict_t *ent, edict_t *other);
+extern bool Pickup_Armor (edict_t *ent, edict_t *other);
+extern bool Pickup_PowerArmor (edict_t *ent, edict_t *other);
 
 char *FindSubstituteItem (edict_t *ent)
 {

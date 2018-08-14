@@ -1744,7 +1744,7 @@ static void fire_beams (edict_t *self, vec3_t start, vec3_t aimdir, vec3_t offse
 	vec3_t		forward, right, up;
 	vec3_t		end;
 	vec3_t		water_start, endpoint;
-	qboolean	water = qfalse, underwater = qfalse;
+	bool		water = false, underwater = false;
 	int			content_mask = MASK_SHOT | MASK_WATER;
 	vec3_t		beam_endpt;
 
@@ -1759,7 +1759,7 @@ static void fire_beams (edict_t *self, vec3_t start, vec3_t aimdir, vec3_t offse
 	if (gi.pointcontents (start) & MASK_WATER)
 	{
 //		gi.dprintf ("Heat beam under water\n");
-		underwater = qtrue;
+		underwater = true;
 		VectorCopy (start, water_start);
 		content_mask &= ~MASK_WATER;
 	}
@@ -1769,7 +1769,7 @@ static void fire_beams (edict_t *self, vec3_t start, vec3_t aimdir, vec3_t offse
 	// see if we hit water
 	if (tr.contents & MASK_WATER)
 	{
-		water = qtrue;
+		water = true;
 		VectorCopy (tr.endpos, water_start);
 
 		if (!VectorCompare (start, tr.endpos))
@@ -1875,7 +1875,7 @@ fire_heat
 Fires a single heat beam.  Zap.
 =================
 */
-void fire_heat (edict_t *self, vec3_t start, vec3_t aimdir, vec3_t offset, int damage, int kick, qboolean monster)
+void fire_heat (edict_t *self, vec3_t start, vec3_t aimdir, vec3_t offset, int damage, int kick, bool monster)
 {
 	if (monster)
 		fire_beams (self, start, aimdir, offset, damage, kick, TE_MONSTER_HEATBEAM, TE_HEATBEAM_SPARKS, MOD_HEATBEAM);
@@ -1958,7 +1958,7 @@ void blaster2_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t 
 	G_FreeEdict (self);
 }
 
-void fire_blaster2 (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int effect, qboolean hyper)
+void fire_blaster2 (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int effect, bool hyper)
 {
 	edict_t	*bolt;
 	trace_t	tr;

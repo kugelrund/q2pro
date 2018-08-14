@@ -46,7 +46,7 @@ Entry will stay in queue for entire lifetime of server connection,
 to make sure each path is tried exactly once.
 ===============
 */
-qerror_t CL_QueueDownload(const char *path, dltype_t type)
+int CL_QueueDownload(const char *path, dltype_t type)
 {
     dlqueue_t *q;
     size_t len;
@@ -92,17 +92,17 @@ Returns true if specified path matches against an entry in download ignore
 list.
 ===============
 */
-qboolean CL_IgnoreDownload(const char *path)
+bool CL_IgnoreDownload(const char *path)
 {
     string_entry_t *entry;
 
     for (entry = cls.download.ignores; entry; entry = entry->next) {
         if (Com_WildCmp(entry->string, path)) {
-            return qtrue;
+            return true;
         }
     }
 
-    return qfalse;
+    return false;
 }
 
 /*
@@ -174,8 +174,7 @@ void CL_LoadDownloadIgnores(void)
 {
     string_entry_t *entry, *next;
     char *raw, *data, *p;
-    int count, line;
-    ssize_t len;
+    int len, count, line;
 
     // free previous entries
     for (entry = cls.download.ignores; entry; entry = next) {
@@ -233,11 +232,11 @@ void CL_LoadDownloadIgnores(void)
     FS_FreeFile(raw);
 }
 
-static qboolean start_udp_download(dlqueue_t *q)
+static bool start_udp_download(dlqueue_t *q)
 {
     size_t len;
     qhandle_t f;
-    ssize_t ret;
+    int64_t ret;
 
     len = strlen(q->path);
     if (len >= MAX_QPATH) {
@@ -253,6 +252,10 @@ static qboolean start_udp_download(dlqueue_t *q)
     // check to see if we already have a tmp for this file, if so, try to resume
     // open the file if not opened yet
     ret = FS_FOpenFile(cls.download.temp, &f, FS_MODE_RDWR);
+    if (ret > INT_MAX) {
+        FS_FCloseFile(f);
+        ret = -EFBIG;
+    }
     if (ret >= 0) {  // it exists
         cls.download.file = f;
         cls.download.position = ret;
@@ -260,15 +263,15 @@ static qboolean start_udp_download(dlqueue_t *q)
         Com_DPrintf("[UDP] Resuming %s\n", q->path);
 #if USE_ZLIB
         if (cls.serverProtocol == PROTOCOL_VERSION_R1Q2)
-            CL_ClientCommand(va("download \"%s\" %"PRIz" udp-zlib", q->path, ret));
+            CL_ClientCommand(va("download \"%s\" %d udp-zlib", q->path, (int)ret));
         else
 #endif
-            CL_ClientCommand(va("download \"%s\" %"PRIz, q->path, ret));
+            CL_ClientCommand(va("download \"%s\" %d", q->path, (int)ret));
     } else if (ret == Q_ERR_NOENT) {  // it doesn't exist
         Com_DPrintf("[UDP] Downloading %s\n", q->path);
 #if USE_ZLIB
         if (cls.serverProtocol == PROTOCOL_VERSION_R1Q2)
-            CL_ClientCommand(va("download \"%s\" %"PRIz" udp-zlib", q->path, (size_t)0));
+            CL_ClientCommand(va("download \"%s\" %d udp-zlib", q->path, 0));
         else
 #endif
             CL_ClientCommand(va("download \"%s\"", q->path));
@@ -276,12 +279,12 @@ static qboolean start_udp_download(dlqueue_t *q)
         Com_EPrintf("[UDP] Couldn't open %s for appending: %s\n",
                     cls.download.temp, Q_ErrorString(ret));
         CL_FinishDownload(q);
-        return qfalse;
+        return false;
     }
 
     q->state = DL_RUNNING;
     cls.download.current = q;
-    return qtrue;
+    return true;
 }
 
 /*
@@ -343,7 +346,7 @@ static void finish_udp_download(const char *msg)
 
 static int write_udp_download(byte *data, int size)
 {
-    ssize_t ret;
+    int ret;
 
     ret = FS_Write(data, size, cls.download.file);
     if (ret != size) {
@@ -423,7 +426,7 @@ An UDP download data has been received from the server.
 void CL_HandleDownload(byte *data, int size, int percent, int compressed)
 {
     dlqueue_t *q = cls.download.current;
-    qerror_t ret;
+    int ret;
 
     if (!q) {
         Com_Error(ERR_DROP, "%s: no download requested", __func__);
@@ -490,7 +493,7 @@ Only predefined set of filename extensions is allowed,
 to prevent the server from uploading arbitrary files.
 ===============
 */
-qboolean CL_CheckDownloadExtension(const char *ext)
+bool CL_CheckDownloadExtension(const char *ext)
 {
     static const char allowed[][4] = {
         "pcx", "wal", "wav", "md2", "sp2", "tga", "png",
@@ -500,16 +503,16 @@ qboolean CL_CheckDownloadExtension(const char *ext)
 
     for (i = 0; i < q_countof(allowed); i++)
         if (!Q_stricmp(ext, allowed[i]))
-            return qtrue;
+            return true;
 
-    return qfalse;
+    return false;
 }
 
 // attempts to start a download from the server if file doesn't exist.
-static qerror_t check_file_len(const char *path, size_t len, dltype_t type)
+static int check_file_len(const char *path, size_t len, dltype_t type)
 {
     char buffer[MAX_QPATH], *ext;
-    qerror_t ret;
+    int ret;
     int valid;
 
     // check for oversize path
@@ -705,7 +708,7 @@ static void check_player(const char *name)
 }
 
 // for precaching dependencies
-static qboolean downloads_pending(dltype_t type)
+static bool downloads_pending(dltype_t type)
 {
     dlqueue_t *q;
 
@@ -717,11 +720,11 @@ static qboolean downloads_pending(dltype_t type)
     // see if there are pending downloads of the given type
     FOR_EACH_DLQ(q) {
         if (q->state != DL_DONE && q->type == type) {
-            return qtrue;
+            return true;
         }
     }
 
-    return qfalse;
+    return false;
 }
 
 /*
@@ -908,7 +911,7 @@ Request a download from the server
 static void CL_Download_f(void)
 {
     char *path;
-    qerror_t ret;
+    int ret;
 
     if (cls.state < ca_connected) {
         Com_Printf("Must be connected to a server.\n");
@@ -939,4 +942,3 @@ void CL_InitDownloads(void)
 
     List_Init(&cls.download.queue);
 }
-

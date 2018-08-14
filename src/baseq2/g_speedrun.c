@@ -6,7 +6,7 @@
 #define STRINGIFY(X) STRINGIFY2(X)
 
 
-qboolean speedrun_finished = qfalse;
+bool speedrun_finished = false;
 
 void PrintSpeedrunTimer()
 {
@@ -32,7 +32,7 @@ void CheckSpeedrunFinished(const gclient_t *client)
 {
     if (strcmp(level.mapname, "boss2") != 0)
     {
-        speedrun_finished = qfalse;
+        speedrun_finished = false;
         return;
     }
 
@@ -51,7 +51,7 @@ void CheckSpeedrunFinished(const gclient_t *client)
         gi.SpeedrunPauseTimer();
         gi.SpeedrunLevelFinished();
         PrintSpeedrunTimer();
-        speedrun_finished = qtrue;
+        speedrun_finished = true;
     }
 }
 

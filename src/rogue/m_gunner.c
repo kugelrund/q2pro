@@ -34,7 +34,7 @@ void gunner_search (edict_t *self)
 }
 
 
-qboolean visible (edict_t *self, edict_t *other);
+bool visible (edict_t *self, edict_t *other);
 void GunnerGrenade (edict_t *self);
 void GunnerFire (edict_t *self);
 void gunner_fire_chain(edict_t *self);
@@ -425,7 +425,7 @@ void GunnerFire (edict_t *self)
 	monster_fire_bullet (self, start, aim, 3, 4, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, flash_number);
 }
 
-qboolean gunner_grenade_check(edict_t *self)
+bool gunner_grenade_check(edict_t *self)
 {
 	vec3_t		start;
 	vec3_t		forward, right;
@@ -433,7 +433,7 @@ qboolean gunner_grenade_check(edict_t *self)
 	vec3_t		target, dir;
 
 	if(!self->enemy)
-		return qfalse;
+		return false;
 
 	// if the player is above my head, use machinegun.
 
@@ -444,14 +444,14 @@ qboolean gunner_grenade_check(edict_t *self)
 		{
 //			if(g_showlogic && g_showlogic->value)
 //				gi.dprintf("blind_fire_target is above my head, using machinegun\n");
-			return qfalse;
+			return false;
 		}
 	}
 	else if(self->absmax[2] <= self->enemy->absmin[2])
 	{
 //		if(g_showlogic && g_showlogic->value)
 //			gi.dprintf("player is above my head, using machinegun\n");
-		return qfalse;
+		return false;
 	}
 
 	// check to see that we can trace to the player before we start
@@ -469,15 +469,15 @@ qboolean gunner_grenade_check(edict_t *self)
 	VectorSubtract (self->s.origin, target, dir);
 
 	if (VectorLength(dir) < 100)
-		return qfalse;
+		return false;
 
 	tr = gi.trace(start, vec3_origin, vec3_origin, target, self, MASK_SHOT);
 	if(tr.ent == self->enemy || tr.fraction == 1)
-		return qtrue;
+		return true;
 
 //	if(g_showlogic && g_showlogic->value)
 //		gi.dprintf("can't trace to target, using machinegun\n");
-	return qfalse;
+	return false;
 }
 
 void GunnerGrenade (edict_t *self)
@@ -490,14 +490,14 @@ void GunnerGrenade (edict_t *self)
 	float	pitch;
 	// PMM
 	vec3_t	target;	
-	qboolean blindfire;
+	bool blindfire;
 
 	if(!self->enemy || !self->enemy->inuse)		//PGM
 		return;									//PGM
 
 	// pmm
 	if (self->monsterinfo.aiflags & AI_MANUAL_STEERING)
-		blindfire = qtrue;
+		blindfire = true;
 
 	if (self->s.frame == FRAME_attak105)
 	{
@@ -920,21 +920,21 @@ void gunner_jump (edict_t *self)
 
 //===========
 //PGM
-qboolean gunner_blocked (edict_t *self, float dist)
+bool gunner_blocked (edict_t *self, float dist)
 {
 	if(blocked_checkshot (self, 0.25 + (0.05 * skill->value) ))
-		return qtrue;
+		return true;
 
 	if(blocked_checkplat (self, dist))
-		return qtrue;
+		return true;
 
 	if(blocked_checkjump (self, dist, 192, 40))
 	{
 		gunner_jump(self);
-		return qtrue;
+		return true;
 	}
 
-	return qfalse;
+	return false;
 }
 //PGM
 //===========
@@ -1057,7 +1057,7 @@ void SP_monster_gunner (edict_t *self)
 	self->monsterinfo.scale = MODEL_SCALE;
 
 	// PMM
-	self->monsterinfo.blindfire = qtrue;
+	self->monsterinfo.blindfire = true;
 
 	walkmonster_start (self);
 }

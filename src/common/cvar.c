@@ -70,15 +70,15 @@ xgenerator_t Cvar_FindGenerator(const char *var_name)
 Cvar_Exists
 ============
 */
-qboolean Cvar_Exists(const char *var_name, qboolean weak)
+bool Cvar_Exists(const char *var_name, bool weak)
 {
     cvar_t *var = Cvar_FindVar(var_name);
 
     if (!var)
-        return qfalse;
+        return false;
     if (!weak && (var->flags & (CVAR_CUSTOM | CVAR_WEAK)))
-        return qfalse;
-    return qtrue;
+        return false;
+    return true;
 }
 
 /*
@@ -164,8 +164,10 @@ static void parse_string_value(cvar_t *var)
         var->integer = clamp(v, INT_MIN, INT_MAX);
         var->value = (float)var->integer;
     } else {
-        var->integer = atoi(var->string);
-        var->value = atof(var->string);
+        var->integer = atoi(s);
+        var->value = atof(s);
+        if (var->value != 0.0f && !isnormal(var->value))
+            var->value = 0.0f;
     }
 }
 
@@ -182,7 +184,7 @@ static void change_string_value(cvar_t *var, const char *value, from_t from)
         CL_UpdateUserinfo(var, from);
     }
 
-    var->modified = qtrue;
+    var->modified = true;
     if (from != FROM_CODE) {
         cvar_modified |= var->flags & CVAR_MODIFYMASK;
         var->flags |= CVAR_MODIFIED;
@@ -195,21 +197,21 @@ static void change_string_value(cvar_t *var, const char *value, from_t from)
     }
 }
 
-static qboolean validate_info_cvar(const char *s)
+static bool validate_info_cvar(const char *s)
 {
     size_t len = Info_SubValidate(s);
 
     if (len == SIZE_MAX) {
         Com_Printf("Info cvars should not contain '\\', ';' or '\"' characters.\n");
-        return qfalse;
+        return false;
     }
 
     if (len >= MAX_QPATH) {
         Com_Printf("Info cvars should be less than 64 characters long.\n");
-        return qfalse;
+        return false;
     }
 
-    return qtrue;
+    return true;
 }
 
 
@@ -297,7 +299,7 @@ cvar_t *Cvar_Get(const char *var_name, const char *var_value, int flags)
     var->flags = flags;
     var->changed = NULL;
     var->generator = Cvar_Default_g;
-    var->modified = qtrue;
+    var->modified = true;
 
     // sort the variable in
     for (c = cvar_vars, p = &cvar_vars; c; p = &c->next, c = c->next) {
@@ -493,8 +495,8 @@ void Cvar_SetValue(cvar_t *var, float value, from_t from)
         return; // not changed
     }
 
-    if (value == (int)value)
-        Q_snprintf(val, sizeof(val), "%i", (int)value);
+    if (value - floorf(value) < 1e-6)
+        Q_snprintf(val, sizeof(val), "%.f", value);
     else
         Q_snprintf(val, sizeof(val), "%f", value);
 
@@ -548,16 +550,12 @@ Cvar_ClampInteger
 */
 int Cvar_ClampInteger(cvar_t *var, int min, int max)
 {
-    char    val[32];
-
     if (var->integer < min) {
-        Q_snprintf(val, sizeof(val), "%i", min);
-        Cvar_SetByVar(var, val, FROM_CODE);
+        Cvar_SetInteger(var, min, FROM_CODE);
         return min;
     }
     if (var->integer > max) {
-        Q_snprintf(val, sizeof(val), "%i", max);
-        Cvar_SetByVar(var, val, FROM_CODE);
+        Cvar_SetInteger(var, max, FROM_CODE);
         return max;
     }
     return var->integer;
@@ -570,24 +568,12 @@ Cvar_ClampValue
 */
 float Cvar_ClampValue(cvar_t *var, float min, float max)
 {
-    char    val[32];
-
     if (var->value < min) {
-        if (min == (int)min) {
-            Q_snprintf(val, sizeof(val), "%i", (int)min);
-        } else {
-            Q_snprintf(val, sizeof(val), "%f", min);
-        }
-        Cvar_SetByVar(var, val, FROM_CODE);
+        Cvar_SetValue(var, min, FROM_CODE);
         return min;
     }
     if (var->value > max) {
-        if (max == (int)max) {
-            Q_snprintf(val, sizeof(val), "%i", (int)max);
-        } else {
-            Q_snprintf(val, sizeof(val), "%f", max);
-        }
-        Cvar_SetByVar(var, val, FROM_CODE);
+        Cvar_SetValue(var, max, FROM_CODE);
         return max;
     }
     return var->value;
@@ -638,7 +624,7 @@ void Cvar_GetLatchedVars(void)
         var->string = var->latched_string;
         var->latched_string = NULL;
         parse_string_value(var);
-        var->modified = qtrue;
+        var->modified = true;
         cvar_modified |= var->flags & CVAR_MODIFYMASK;
         if (var->changed) {
             var->changed(var);
@@ -792,7 +778,7 @@ Appends lines containing "set variable value" for all variables
 with the archive flag set to true.
 ============
 */
-void Cvar_WriteVariables(qhandle_t f, int mask, qboolean modified)
+void Cvar_WriteVariables(qhandle_t f, int mask, bool modified)
 {
     cvar_t  *var;
     char    *s, *a;
@@ -846,7 +832,7 @@ static void Cvar_List_f(void)
 {
     cvar_t    *var;
     int        i, total;
-    qboolean verbose = qfalse, modified = qfalse, latched = qfalse;
+    bool verbose = false, modified = false, latched = false;
     int mask = 0;
     char *wildcard = NULL;
     char buffer[5];
@@ -876,10 +862,10 @@ static void Cvar_List_f(void)
                 "?: created by user\n");
             return;
         case 'l':
-            latched = qtrue;
+            latched = true;
             break;
         case 'm':
-            modified = qtrue;
+            modified = true;
             break;
         case 'n':
             mask |= CVAR_NOSET;
@@ -897,7 +883,7 @@ static void Cvar_List_f(void)
             mask |= CVAR_USERINFO;
             break;
         case 'v':
-            verbose = qtrue;
+            verbose = true;
             break;
         case 'w':
             wildcard = cmd_optarg;
@@ -1025,7 +1011,6 @@ static void Cvar_Inc_f(void)
 {
     cvar_t *var;
     float value;
-    char val[32];
 
     if (Cmd_Argc() < 2) {
         Com_Printf("Usage: %s <variable> [value]\n", Cmd_Argv(0));
@@ -1051,14 +1036,14 @@ static void Cvar_Inc_f(void)
     if (!strcmp(Cmd_Argv(0), "dec")) {
         value = -value;
     }
-    value += var->value;
+    Cvar_SetValue(var, var->value + value, Cmd_From());
+}
 
-    if (value == (int)value)
-        Q_snprintf(val, sizeof(val), "%i", (int)value);
-    else
-        Q_snprintf(val, sizeof(val), "%f", value);
-
-    Cvar_SetByVar(var, val, Cmd_From());
+static void Cvar_Inc_c(genctx_t *ctx, int argnum)
+{
+    if (argnum == 1) {
+        Cvar_Variable_g(ctx);
+    }
 }
 
 /*
@@ -1086,9 +1071,12 @@ static void Cvar_Reset_f(void)
 
 static void Cvar_Reset_c(genctx_t *ctx, int argnum)
 {
-    if (argnum == 1) {
-        Cvar_Variable_g(ctx);
-    }
+    cvar_t *var;
+
+    if (argnum == 1)
+        for (var = cvar_vars; var; var = var->next)
+            if (strcmp(var->latched_string ? var->latched_string : var->string, var->default_string))
+                Prompt_AddMatch(ctx, var->name);
 }
 
 static void Cvar_ResetAll_f(void)
@@ -1153,8 +1141,8 @@ static const cmdreg_t c_cvar[] = {
     { "seta", Cvar_SetFlag_f, Cvar_Set_c },
     { "cvarlist", Cvar_List_f, Cvar_List_c },
     { "toggle", Cvar_Toggle_f, Cvar_Toggle_c },
-    { "inc", Cvar_Inc_f, Cvar_Reset_c },
-    { "dec", Cvar_Inc_f, Cvar_Reset_c },
+    { "inc", Cvar_Inc_f, Cvar_Inc_c },
+    { "dec", Cvar_Inc_f, Cvar_Inc_c },
     { "reset", Cvar_Reset_f, Cvar_Reset_c },
     { "resetall", Cvar_ResetAll_f },
 
@@ -1170,4 +1158,3 @@ void Cvar_Init(void)
 {
     Cmd_Register(c_cvar);
 }
-

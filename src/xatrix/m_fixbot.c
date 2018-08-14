@@ -9,8 +9,8 @@
 
 #define MZ2_fixbot_BLASTER_1				MZ2_HOVER_BLASTER_1
 
-qboolean visible (edict_t *self, edict_t *other);
-qboolean infront (edict_t *self, edict_t *other);
+bool visible (edict_t *self, edict_t *other);
+bool infront (edict_t *self, edict_t *other);
 
 static int	sound_pain1;
 static int	sound_die;
@@ -353,7 +353,7 @@ void blastoff (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick,
 	float		r;
 	float		u;
 	vec3_t		water_start;
-	qboolean	water = qfalse;
+	bool		water = false;
 	int			content_mask = MASK_SHOT | MASK_WATER;
 
 	hspread+= (self->s.frame - FRAME_takeoff_01);
@@ -373,7 +373,7 @@ void blastoff (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick,
 
 		if (gi.pointcontents (start) & MASK_WATER)
 		{
-			water = qtrue;
+			water = true;
 			VectorCopy (start, water_start);
 			content_mask &= ~MASK_WATER;
 		}
@@ -385,7 +385,7 @@ void blastoff (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int kick,
 		{
 			int		color;
 
-			water = qtrue;
+			water = true;
 			VectorCopy (tr.endpos, water_start);
 
 			if (!VectorCompare (start, tr.endpos))

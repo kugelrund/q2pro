@@ -739,7 +739,7 @@ void func_explosive_explode (edict_t *self, edict_t *inflictor, edict_t *attacke
 	int		count;
 	int		mass;
 	edict_t	*master;
-	qboolean	done = qfalse;
+	bool	done = false;
 
 	// bmodel origins are (0 0 0), we need to adjust that here
 	VectorScale (self->size, 0.5, size);
@@ -805,7 +805,7 @@ void func_explosive_explode (edict_t *self, edict_t *inflictor, edict_t *attacke
 					if (master->teamchain == self)
 					{
 						master->teamchain = self->teamchain;
-						done = qtrue;
+						done = true;
 					}
 					master = master->teamchain;
 					if (!master)

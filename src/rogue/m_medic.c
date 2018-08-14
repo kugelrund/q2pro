@@ -21,9 +21,9 @@ MEDIC
 //
 // 5/15/1998 I think I fixed these, keep an eye on them
 
-qboolean visible (edict_t *self, edict_t *other);
+bool visible (edict_t *self, edict_t *other);
 void M_SetEffects (edict_t *ent);
-qboolean FindTarget (edict_t *self);
+bool FindTarget (edict_t *self);
 void HuntTarget (edict_t *self);
 void FoundTarget (edict_t *self);
 char *ED_NewString (char *string);
@@ -97,7 +97,7 @@ vec3_t reinforcement_position[] = {
 	{0, -80, 0}
 };
 
-void cleanupHeal (edict_t *self, qboolean change_frame)
+void cleanupHeal (edict_t *self, bool change_frame)
 {
 	// clean up target, if we have one and it's legit
 	if (self->enemy && self->enemy->inuse)
@@ -112,7 +112,7 @@ void cleanupHeal (edict_t *self, qboolean change_frame)
 		self->monsterinfo.nextframe = FRAME_attack52;
 }
 
-void abortHeal (edict_t *self, qboolean change_frame, qboolean gib, qboolean mark)
+void abortHeal (edict_t *self, bool change_frame, bool gib, bool mark)
 {
 	int hurt;
 	static vec3_t	pain_normal = { 0, 0, 1 };
@@ -159,7 +159,7 @@ void abortHeal (edict_t *self, qboolean change_frame, qboolean gib, qboolean mar
 	self->monsterinfo.medicTries = 0;
 }
 
-qboolean canReach (edict_t *self, edict_t *other)
+bool canReach (edict_t *self, edict_t *other)
 {
 	vec3_t	spot1;
 	vec3_t	spot2;
@@ -172,8 +172,8 @@ qboolean canReach (edict_t *self, edict_t *other)
 	trace = gi.trace (spot1, vec3_origin, vec3_origin, spot2, self, MASK_SHOT|MASK_WATER);
 	
 	if (trace.fraction == 1.0 || trace.ent == other)		// PGM
-		return qtrue;
-	return qfalse;
+		return true;
+	return false;
 }
 
 edict_t *medic_FindDeadMonster (edict_t *self)
@@ -775,7 +775,7 @@ void medic_cable_attack (edict_t *self)
 	{
 //		if ((g_showlogic) && (g_showlogic->value))
 //			gi.dprintf ("medic_commander - aborting heal due to target's disappearance\n");
-		abortHeal (self, qtrue, qfalse, qfalse);
+		abortHeal (self, true, false, false);
 		return;
 	}
 
@@ -783,7 +783,7 @@ void medic_cable_attack (edict_t *self)
 	// abort it .. we got switched to someone else due to damage
 	if ((self->enemy->client) || (self->enemy->health > 0))
 	{
-		abortHeal (self, qtrue, qfalse, qfalse);
+		abortHeal (self, true, false, false);
 		return;
 	}
 	AngleVectors (self->s.angles, f, r, NULL);
@@ -799,7 +799,7 @@ void medic_cable_attack (edict_t *self)
 	{
 //		if ((g_showlogic) && (g_showlogic->value))
 //			gi.dprintf ("medic_commander - aborting heal due to proximity to target ");
-		abortHeal (self, qtrue, qtrue, qfalse );
+		abortHeal (self, true, true, false );
 		return;
 	}
 //	if ((g_showlogic)&&(g_showlogic->value))
@@ -828,7 +828,7 @@ void medic_cable_attack (edict_t *self)
 			// give up on second try
 			if (self->monsterinfo.medicTries > 1)
 			{
-				abortHeal (self, qtrue, qfalse, qtrue);
+				abortHeal (self, true, false, true);
 				return;
 			}
 			self->monsterinfo.medicTries++;
@@ -837,7 +837,7 @@ void medic_cable_attack (edict_t *self)
 		}
 //		if ((g_showlogic) && (g_showlogic->value))
 //			gi.dprintf ("medic_commander - aborting heal due to beamus interruptus\n");
-		abortHeal (self, qtrue, qfalse, qfalse);
+		abortHeal (self, true, false, false);
 		return;
 	}
 
@@ -872,14 +872,14 @@ void medic_cable_attack (edict_t *self)
 		{
 //			if ((g_showlogic) && (g_showlogic->value))
 //				gi.dprintf ("Spawn point obstructed, aborting heal!\n");
-			abortHeal (self, qtrue, qtrue, qfalse);
+			abortHeal (self, true, true, false);
 			return;
 		} 
 		else if (tr.ent != world)
 		{
 //			if ((g_showlogic) && (g_showlogic->value))
 //				gi.dprintf("heal in entity %s\n", tr.ent->classname);
-			abortHeal (self, qtrue, qtrue, qfalse);
+			abortHeal (self, true, true, false);
 			return;
 		}
 /*		else if (tr.ent == world)
@@ -1160,7 +1160,7 @@ void medic_spawngrows (edict_t *self)
 	int		num_summoned; // should be 1, 3, or 5
 	int		num_success = 0;
 	float	current_yaw;
-	//qboolean	behind = qfalse;
+	//bool	behind = false;
 
 	// if we've been directed to turn around
 	if (self->monsterinfo.aiflags & AI_MANUAL_STEERING)
@@ -1180,7 +1180,7 @@ void medic_spawngrows (edict_t *self)
 //	if (self->plat2flags < 0)
 //	{
 //		summonStr = -1.0 * self->plat2flags;
-//		behind = qtrue;
+//		behind = true;
 //	}
 //	else
 		summonStr = self->plat2flags;
@@ -1233,7 +1233,7 @@ void medic_finish_spawn (edict_t *self)
 	int		count;
 	int		inc;
 	int		num_summoned; // should be 1, 3, or 5
-	//qboolean	behind = qfalse;
+	//bool	behind = false;
 	edict_t	*designated_enemy;
 
 //	trace_t		tr;
@@ -1246,7 +1246,7 @@ void medic_finish_spawn (edict_t *self)
 	//FIXME - better place to store this info?
 	if (self->plat2flags < 0)
 	{
-		//behind = qtrue;
+		//behind = true;
 		self->plat2flags *= -1;
 	}
 	summonStr = self->plat2flags;
@@ -1439,7 +1439,7 @@ void medic_attack(edict_t *self)
 	}
 }
 
-qboolean medic_checkattack (edict_t *self)
+bool medic_checkattack (edict_t *self)
 {
 	if (self->monsterinfo.aiflags & AI_MEDIC)
 	{
@@ -1448,8 +1448,8 @@ qboolean medic_checkattack (edict_t *self)
 		{
 //			if (g_showlogic && g_showlogic->value)
 //				gi.dprintf ("aborting heal target due to gib\n");
-			abortHeal (self, qtrue, qfalse, qfalse);
-			return qfalse;
+			abortHeal (self, true, false, false);
+			return false;
 		}
 
 		// if we ran out of time, give up
@@ -1457,27 +1457,27 @@ qboolean medic_checkattack (edict_t *self)
 		{
 //			if (g_showlogic && g_showlogic->value)
 //				gi.dprintf ("aborting heal target (%s) due to time\n", self->enemy->classname);
-			abortHeal (self, qtrue, qfalse, qtrue);
+			abortHeal (self, true, false, true);
 			self->timestamp = 0;
-			return qfalse;
+			return false;
 		}
 	
 		if (realrange(self, self->enemy) < MEDIC_MAX_HEAL_DISTANCE+10)
 		{
 			medic_attack(self);
-			return qtrue;
+			return true;
 		}
 		else
 		{
 			self->monsterinfo.attack_state = AS_STRAIGHT;
-			return qfalse;
+			return false;
 		}
 	}
 
 	if (self->enemy->client && !visible (self, self->enemy) && (self->monsterinfo.monster_slots > 2))
 	{
 		self->monsterinfo.attack_state = AS_BLIND;
-		return qtrue;
+		return true;
 	}
 
 	// give a LARGE bias to spawning things when we have room
@@ -1486,7 +1486,7 @@ qboolean medic_checkattack (edict_t *self)
 	{
 		self->monsterinfo.aiflags |= AI_BLOCKED;
 		self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 	
 	// ROGUE
@@ -1496,7 +1496,7 @@ qboolean medic_checkattack (edict_t *self)
 		if (self->monsterinfo.aiflags & AI_STAND_GROUND)
 		{
 			self->monsterinfo.attack_state = AS_MISSILE;
-			return qtrue;
+			return true;
 		}
 
 	return M_CheckAttack (self);
@@ -1676,15 +1676,15 @@ void medic_sidestep (edict_t *self)
 
 //===========
 //PGM
-qboolean medic_blocked (edict_t *self, float dist)
+bool medic_blocked (edict_t *self, float dist)
 {
 	if(blocked_checkshot (self, 0.25 + (0.05 * skill->value) ))
-		return qtrue;
+		return true;
 
 	if(blocked_checkplat (self, dist))
-		return qtrue;
+		return true;
 
-	return qfalse;
+	return false;
 }
 //PGM
 //===========

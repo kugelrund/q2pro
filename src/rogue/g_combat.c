@@ -19,11 +19,11 @@ void cleanupHealTarget (edict_t *ent)
 ============
 CanDamage
 
-Returns qtrue if the inflictor can directly damage the target.  Used for
+Returns true if the inflictor can directly damage the target.  Used for
 explosions and melee attacks.
 ============
 */
-qboolean CanDamage (edict_t *targ, edict_t *inflictor)
+bool CanDamage (edict_t *targ, edict_t *inflictor)
 {
 	vec3_t	dest;
 	trace_t	trace;
@@ -35,46 +35,46 @@ qboolean CanDamage (edict_t *targ, edict_t *inflictor)
 		VectorScale (dest, 0.5, dest);
 		trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, dest, inflictor, MASK_SOLID);
 		if (trace.fraction == 1.0)
-			return qtrue;
+			return true;
 		if (trace.ent == targ)
-			return qtrue;
-		return qfalse;
+			return true;
+		return false;
 	}
 	
 	trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, targ->s.origin, inflictor, MASK_SOLID);
 	if (trace.fraction == 1.0)
-		return qtrue;
+		return true;
 
 	VectorCopy (targ->s.origin, dest);
 	dest[0] += 15.0;
 	dest[1] += 15.0;
 	trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, dest, inflictor, MASK_SOLID);
 	if (trace.fraction == 1.0)
-		return qtrue;
+		return true;
 
 	VectorCopy (targ->s.origin, dest);
 	dest[0] += 15.0;
 	dest[1] -= 15.0;
 	trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, dest, inflictor, MASK_SOLID);
 	if (trace.fraction == 1.0)
-		return qtrue;
+		return true;
 
 	VectorCopy (targ->s.origin, dest);
 	dest[0] -= 15.0;
 	dest[1] += 15.0;
 	trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, dest, inflictor, MASK_SOLID);
 	if (trace.fraction == 1.0)
-		return qtrue;
+		return true;
 
 	VectorCopy (targ->s.origin, dest);
 	dest[0] -= 15.0;
 	dest[1] -= 15.0;
 	trace = gi.trace (inflictor->s.origin, vec3_origin, vec3_origin, dest, inflictor, MASK_SOLID);
 	if (trace.fraction == 1.0)
-		return qtrue;
+		return true;
 
 
-	return qfalse;
+	return false;
 }
 
 
@@ -357,7 +357,7 @@ static int CheckArmor (edict_t *ent, vec3_t point, vec3_t normal, int damage, in
 void M_ReactToDamage (edict_t *targ, edict_t *attacker, edict_t *inflictor)
 {
 	// pmm
-	qboolean new_tesla;
+	bool new_tesla;
 
 	if (!(attacker->client) && !(attacker->svflags & SVF_MONSTER))
 		return;
@@ -514,11 +514,11 @@ void M_ReactToDamage (edict_t *targ, edict_t *attacker, edict_t *inflictor)
 	}
 }
 
-qboolean CheckTeamDamage (edict_t *targ, edict_t *attacker)
+bool CheckTeamDamage (edict_t *targ, edict_t *attacker)
 {
 		//FIXME make the next line real and uncomment this block
 		// if ((ability to damage a teammate == OFF) && (targ's team == attacker's team))
-	return qfalse;
+	return false;
 }
 
 void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir, vec3_t point, vec3_t normal, int damage, int knockback, int dflags, int mod)
@@ -534,7 +534,7 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 	if (!targ->takedamage)
 		return;
 
-	sphere_notified = qfalse;		// PGM
+	sphere_notified = false;		// PGM
 
 	// friendly fire avoidance
 	// if enabled you can't hurt teammates (but you can hurt yourself)
@@ -704,7 +704,7 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 //PGM - spheres need to know who to shoot at
 		if(client && client->owned_sphere)
 		{
-			sphere_notified = qtrue;
+			sphere_notified = true;
 			if(client->owned_sphere->pain)
 				client->owned_sphere->pain (client->owned_sphere, attacker, 0, 0);
 		}
@@ -724,7 +724,7 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 	{
 		if(client && client->owned_sphere)
 		{
-			sphere_notified = qtrue;
+			sphere_notified = true;
 			if(client->owned_sphere->pain)
 				client->owned_sphere->pain (client->owned_sphere, attacker, 0, 0);
 		}

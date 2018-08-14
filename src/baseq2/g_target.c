@@ -86,7 +86,7 @@ void SP_target_speaker(edict_t *ent)
     if (!strstr(st.noise, ".wav"))
         Q_snprintf(buffer, sizeof(buffer), "%s.wav", st.noise);
     else
-        strncpy(buffer, st.noise, sizeof(buffer));
+        Q_strlcpy(buffer, st.noise, sizeof(buffer));
     ent->noise_index = gi.soundindex(buffer);
 
     if (!ent->volume)
@@ -114,9 +114,9 @@ void SP_target_speaker(edict_t *ent)
 void Use_Target_Help(edict_t *ent, edict_t *other, edict_t *activator)
 {
     if (ent->spawnflags & 1)
-        strncpy(game.helpmessage1, ent->message, sizeof(game.helpmessage2) - 1);
+        Q_strlcpy(game.helpmessage1, ent->message, sizeof(game.helpmessage2));
     else
-        strncpy(game.helpmessage2, ent->message, sizeof(game.helpmessage1) - 1);
+        Q_strlcpy(game.helpmessage2, ent->message, sizeof(game.helpmessage1));
 
     game.helpchanged++;
 }
@@ -452,7 +452,7 @@ void SP_target_crosslevel_trigger(edict_t *self)
 }
 
 /*QUAKED target_crosslevel_target (.5 .5 .5) (-8 -8 -8) (8 8 8) trigger1 trigger2 trigger3 trigger4 trigger5 trigger6 trigger7 trigger8
-Triggered by a trigger_crosslevel elsewhere within a unit.  If multiple triggers are checked, all must be qtrue.  Delay, target and
+Triggered by a trigger_crosslevel elsewhere within a unit.  If multiple triggers are checked, all must be true.  Delay, target and
 killtarget also work.
 
 "delay"     delay before using targets if the trigger has been activated (default 1)

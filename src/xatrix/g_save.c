@@ -222,6 +222,7 @@ void WriteField1 (FILE *f, field_t *field, byte *base)
 	switch (field->type)
 	{
 	case F_INT:
+	case F_BOOL:
 	case F_FLOAT:
 	case F_ANGLEHACK:
 	case F_VECTOR:
@@ -318,6 +319,7 @@ void ReadField (FILE *f, field_t *field, byte *base)
 	switch (field->type)
 	{
 	case F_INT:
+	case F_BOOL:
 	case F_FLOAT:
 	case F_ANGLEHACK:
 	case F_VECTOR:
@@ -445,7 +447,7 @@ A single player death will automatically restore from the
 last save position.
 ============
 */
-void WriteGame (char *filename, qboolean autosave)
+void WriteGame (char *filename, int autosave)
 {
 	FILE	*f;
 	int		i;
@@ -464,7 +466,7 @@ void WriteGame (char *filename, qboolean autosave)
 
 	game.autosaved = autosave;
 	fwrite (&game, sizeof(game), 1, f);
-	game.autosaved = qfalse;
+	game.autosaved = false;
 
 	for (i=0 ; i<game.maxclients ; i++)
 		WriteClient (f, &game.clients[i]);
@@ -730,7 +732,7 @@ void ReadLevel (char *filename)
 	{
 		ent = &g_edicts[i+1];
 		ent->client = game.clients + i;
-		ent->client->pers.connected = qfalse;
+		ent->client->pers.connected = false;
 	}
 
 	// do any load time things at this point

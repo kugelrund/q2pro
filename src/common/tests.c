@@ -122,7 +122,7 @@ static void BSP_Test_f(void)
     char *name;
     int i, count, errors;
     bsp_t *bsp;
-    qerror_t ret;
+    int ret;
     unsigned start, end;
 
     list = FS_ListFiles("maps", ".bsp", FS_SEARCH_SAVEPATH, &count);
@@ -185,7 +185,7 @@ static const int numwildtests = q_countof(wildtests);
 static void Com_TestWild_f(void)
 {
     const wildtest_t *w;
-    qboolean match;
+    bool match;
     int i, errors;
 
     errors = 0;
@@ -393,7 +393,7 @@ static void Com_TestInfo_f(void)
     const info_set_test_t *s;
     char buffer[MAX_INFO_STRING];
     int i, errors;
-    qboolean result;
+    bool result;
 
     errors = 0;
     for (i = 0; i < num_info_validate_tests; i++) {
@@ -437,7 +437,7 @@ static void Com_TestInfo_f(void)
 typedef struct {
     size_t size;
     size_t len1, len2;
-    qboolean overflow1, overflow2;
+    bool overflow1, overflow2;
     const char *res;
 } snprintf_test_t;
 
@@ -462,7 +462,7 @@ static void Com_TestSnprintf_f(void)
     char buf[16], *ptr;
     size_t len;
     int i, errors;
-    qboolean overflow;
+    bool overflow;
 
     errors = 0;
     for (i = 0; i < num_snprintf_tests; i++) {
@@ -540,4 +540,3 @@ void TST_Init(void)
     Cmd_AddCommand("modeltest", Com_TestModels_f);
 #endif
 }
-

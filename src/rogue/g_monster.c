@@ -31,7 +31,7 @@ void monster_fire_shotgun (edict_t *self, vec3_t start, vec3_t aimdir, int damag
 
 void monster_fire_blaster (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int flashtype, int effect)
 {
-	fire_blaster (self, start, dir, damage, speed, effect, qfalse);
+	fire_blaster (self, start, dir, damage, speed, effect, false);
 
 	gi.WriteByte (svc_muzzleflash2);
 	gi.WriteShort (self - g_edicts);
@@ -42,7 +42,7 @@ void monster_fire_blaster (edict_t *self, vec3_t start, vec3_t dir, int damage, 
 //ROGUE
 void monster_fire_blaster2 (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, int flashtype, int effect)
 {
-	fire_blaster2 (self, start, dir, damage, speed, effect, qfalse);
+	fire_blaster2 (self, start, dir, damage, speed, effect, false);
 
 	gi.WriteByte (svc_muzzleflash2);
 	gi.WriteShort (self - g_edicts);
@@ -63,7 +63,7 @@ void monster_fire_tracker (edict_t *self, vec3_t start, vec3_t dir, int damage, 
 
 void monster_fire_heat (edict_t *self, vec3_t start, vec3_t dir, vec3_t offset, int damage, int kick, int flashtype)
 {
-	fire_heat (self, start, dir, offset, damage, kick, qtrue);
+	fire_heat (self, start, dir, offset, damage, kick, true);
 
 	gi.WriteByte (svc_muzzleflash2);
 	gi.WriteShort (self - g_edicts);
@@ -678,12 +678,12 @@ void monster_death_use (edict_t *self)
 
 //============================================================================
 
-qboolean monster_start (edict_t *self)
+bool monster_start (edict_t *self)
 {
 	if (deathmatch->value)
 	{
 		G_FreeEdict (self);
-		return qfalse;
+		return false;
 	}
 
 	if ((self->spawnflags & 4) && !(self->monsterinfo.aiflags & AI_GOOD_GUY))
@@ -732,7 +732,7 @@ qboolean monster_start (edict_t *self)
 	self->monsterinfo.double_framenum = 0;
 	self->monsterinfo.invincible_framenum = 0;
 
-	return qtrue;
+	return true;
 }
 
 void monster_start_go (edict_t *self)
@@ -745,23 +745,23 @@ void monster_start_go (edict_t *self)
 	// check for target to combat_point and change to combattarget
 	if (self->target)
 	{
-		qboolean	notcombat;
-		qboolean	fixup;
+		bool		notcombat;
+		bool		fixup;
 		edict_t		*target;
 
 		target = NULL;
-		notcombat = qfalse;
-		fixup = qfalse;
+		notcombat = false;
+		fixup = false;
 		while ((target = G_Find (target, FOFS(targetname), self->target)) != NULL)
 		{
 			if (strcmp(target->classname, "point_combat") == 0)
 			{
 				self->combattarget = self->target;
-				fixup = qtrue;
+				fixup = true;
 			}
 			else
 			{
-				notcombat = qtrue;
+				notcombat = true;
 			}
 		}
 		if (notcombat && self->combattarget)

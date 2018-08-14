@@ -44,7 +44,7 @@ typedef enum {
 } should_exit_t;
 
 static volatile should_exit_t   shouldExit;
-static volatile qboolean        errorEntered;
+static volatile bool            errorEntered;
 
 static LARGE_INTEGER            timer_freq;
 
@@ -75,7 +75,7 @@ static cvar_t           *sys_viewlog;
 static commandPrompt_t  sys_con;
 static int              sys_hidden;
 static CONSOLE_SCREEN_BUFFER_INFO   sbinfo;
-static qboolean             gotConsole;
+static bool             gotConsole;
 
 static void write_console_data(void *data, size_t len)
 {
@@ -135,7 +135,7 @@ void Sys_RunConsole(void)
     while (1) {
         if (!GetNumberOfConsoleInputEvents(hinput, &numevents)) {
             Com_EPrintf("Error %lu getting number of console events.\n", GetLastError());
-            gotConsole = qfalse;
+            gotConsole = false;
             return;
         }
 
@@ -147,7 +147,7 @@ void Sys_RunConsole(void)
 
         if (!ReadConsoleInput(hinput, recs, numevents, &numread)) {
             Com_EPrintf("Error %lu reading console input.\n", GetLastError());
-            gotConsole = qfalse;
+            gotConsole = false;
             return;
         }
 
@@ -158,7 +158,7 @@ void Sys_RunConsole(void)
 
                 if (!width) {
                     Com_EPrintf("Invalid console buffer width.\n");
-                    gotConsole = qfalse;
+                    gotConsole = false;
                     return;
                 }
 
@@ -217,7 +217,7 @@ void Sys_RunConsole(void)
                 break;
             case VK_TAB:
                 hide_console_input();
-                Prompt_CompleteCommand(&sys_con, qfalse);
+                Prompt_CompleteCommand(&sys_con, false);
                 f->cursorPos = strlen(f->text);
                 show_console_input();
                 break;
@@ -371,7 +371,7 @@ static void Sys_ConsoleInit(void)
     }
     sys_con.widthInChars = width;
     sys_con.printf = Sys_Printf;
-    gotConsole = qtrue;
+    gotConsole = true;
 
     SetConsoleTitle(PRODUCT " console");
     SetConsoleCtrlHandler(Sys_ConsoleCtrlHandler, TRUE);
@@ -538,6 +538,124 @@ fail:
 /*
 ===============================================================================
 
+ASYNC WORK QUEUE
+
+===============================================================================
+*/
+
+#if USE_CLIENT
+
+static bool work_initialized;
+static bool work_terminate;
+static CRITICAL_SECTION work_crit;
+static HANDLE work_event;
+static HANDLE work_thread;
+static asyncwork_t *pend_head;
+static asyncwork_t *done_head;
+
+static void append_work(asyncwork_t **head, asyncwork_t *work)
+{
+    asyncwork_t *c, **p;
+    for (p = head, c = *head; c; p = &c->next, c = c->next);
+    work->next = NULL;
+    *p = work;
+}
+
+static void complete_work(void)
+{
+    asyncwork_t *work, *next;
+
+    if (!work_initialized)
+        return;
+    if (!TryEnterCriticalSection(&work_crit))
+        return;
+    if (q_unlikely(done_head)) {
+        for (work = done_head; work; work = next) {
+            next = work->next;
+            if (work->done_cb)
+                work->done_cb(work->cb_arg);
+            Z_Free(work);
+        }
+        done_head = NULL;
+    }
+    LeaveCriticalSection(&work_crit);
+}
+
+static DWORD WINAPI thread_func(LPVOID arg)
+{
+    EnterCriticalSection(&work_crit);
+    while (1) {
+        while (!pend_head && !work_terminate) {
+            LeaveCriticalSection(&work_crit);
+            if (WaitForSingleObject(work_event, INFINITE))
+                return 1;
+            EnterCriticalSection(&work_crit);
+        }
+
+        asyncwork_t *work = pend_head;
+        if (!work)
+            break;
+        pend_head = work->next;
+
+        LeaveCriticalSection(&work_crit);
+        work->work_cb(work->cb_arg);
+        EnterCriticalSection(&work_crit);
+
+        append_work(&done_head, work);
+    }
+    LeaveCriticalSection(&work_crit);
+
+    return 0;
+}
+
+static void shutdown_work(void)
+{
+    if (!work_initialized)
+        return;
+
+    EnterCriticalSection(&work_crit);
+    work_terminate = true;
+    LeaveCriticalSection(&work_crit);
+
+    SetEvent(work_event);
+
+    WaitForSingleObject(work_thread, INFINITE);
+    complete_work();
+
+    DeleteCriticalSection(&work_crit);
+    CloseHandle(work_event);
+    CloseHandle(work_thread);
+    work_initialized = false;
+}
+
+void Sys_QueueAsyncWork(asyncwork_t *work)
+{
+    if (!work_initialized) {
+        InitializeCriticalSection(&work_crit);
+        work_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+        if (!work_event)
+            Sys_Error("Couldn't create async work event");
+        work_thread = CreateThread(NULL, 0, thread_func, NULL, 0, NULL);
+        if (!work_thread)
+            Sys_Error("Couldn't create async work thread");
+        work_initialized = true;
+    }
+
+    EnterCriticalSection(&work_crit);
+    append_work(&pend_head, Z_CopyStruct(work));
+    LeaveCriticalSection(&work_crit);
+
+    SetEvent(work_event);
+}
+
+#else
+#define shutdown_work() (void)0
+#define complete_work() (void)0
+#endif
+
+/*
+===============================================================================
+
 MISC
 
 ===============================================================================
@@ -576,7 +694,7 @@ void Sys_Error(const char *error, ...)
     Q_vsnprintf(text, sizeof(text), error, argptr);
     va_end(argptr);
 
-    errorEntered = qtrue;
+    errorEntered = true;
 
 #if USE_CLIENT
     Win_Shutdown();
@@ -614,6 +732,8 @@ This function never returns.
 */
 void Sys_Quit(void)
 {
+    shutdown_work();
+
 #if USE_CLIENT
 #if USE_SYSCON
     if (dedicated && dedicated->integer) {
@@ -663,7 +783,7 @@ void Sys_Init(void)
     HMODULE module;
     BOOL (WINAPI * pSetProcessDEPPolicy)(DWORD);
 #endif
-    cvar_t *var = NULL;
+    cvar_t *var q_unused;
 
     // check windows version
     vinfo.dwOSVersionInfoSize = sizeof(vinfo);
@@ -811,10 +931,11 @@ static inline time_t file_time_to_unix(FILETIME *f)
 
 static void *copy_info(const char *name, const LPWIN32_FIND_DATAA data)
 {
+    int64_t size = data->nFileSizeLow | (uint64_t)data->nFileSizeHigh << 32;
     time_t ctime = file_time_to_unix(&data->ftCreationTime);
     time_t mtime = file_time_to_unix(&data->ftLastWriteTime);
 
-    return FS_CopyInfo(name, data->nFileSizeLow, ctime, mtime);
+    return FS_CopyInfo(name, size, ctime, mtime);
 }
 
 /*
@@ -1000,6 +1121,7 @@ static int Sys_Main(int argc, char **argv)
 
     // main program loop
     while (1) {
+        complete_work();
         Qcommon_Frame();
         if (shouldExit) {
 #if USE_WINSVC
@@ -1152,4 +1274,3 @@ int main(int argc, char **argv)
 }
 
 #endif // !USE_CLIENT
-

@@ -1168,25 +1168,25 @@ void soldier_dodge (edict_t *self, edict_t *attacker, float eta, trace_t *tr)
 */
 // pmm - blocking code
 
-qboolean soldier_blocked (edict_t *self, float dist)
+bool soldier_blocked (edict_t *self, float dist)
 {
 	// don't do anything if you're dodging
 	if ((self->monsterinfo.aiflags & AI_DODGING) || (self->monsterinfo.aiflags & AI_DUCKED))
-		return qfalse;
+		return false;
 
 	if(blocked_checkshot (self, 0.25 + (0.05 * skill->value) ))
-		return qtrue;
+		return true;
 
 //	if(blocked_checkjump (self, dist, 192, 40))
 //	{
 //		soldier_jump(self);
-//		return qtrue;
+//		return true;
 //	}
 
 	if(blocked_checkplat (self, dist))
-		return qtrue;
+		return true;
 
-	return qfalse;
+	return false;
 }
 
 //
@@ -1731,7 +1731,7 @@ void SP_monster_soldier_light (edict_t *self)
 	self->gib_health = -30;
 
 	// PMM - blindfire
-	self->monsterinfo.blindfire = qtrue;
+	self->monsterinfo.blindfire = true;
 }
 
 /*QUAKED monster_soldier (1 .5 0) (-16 -16 -24) (16 16 32) Ambush Trigger_Spawn Sight Blind

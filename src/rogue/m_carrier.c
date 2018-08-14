@@ -21,9 +21,9 @@ carrier
 void BossExplode (edict_t *self);
 void Grenade_Explode (edict_t *ent);
 
-qboolean infront (edict_t *self, edict_t *other);
-qboolean inback (edict_t *self, edict_t *other);
-qboolean below (edict_t *self, edict_t *other);
+bool infront (edict_t *self, edict_t *other);
+bool inback (edict_t *self, edict_t *other);
+bool below (edict_t *self, edict_t *other);
 void drawbbox (edict_t *self);
 
 //char *ED_NewString (char *string);
@@ -230,22 +230,22 @@ void CarrierPredictiveRocket  (edict_t *self)
 
 //1
 	G_ProjectSource (self->s.origin, monster_flash_offset[MZ2_CARRIER_ROCKET_1], forward, right, start);
-	PredictAim (self->enemy, start, CARRIER_ROCKET_SPEED, qfalse, -0.3, dir, NULL);
+	PredictAim (self->enemy, start, CARRIER_ROCKET_SPEED, false, -0.3, dir, NULL);
 	monster_fire_rocket (self, start, dir, 50, CARRIER_ROCKET_SPEED, MZ2_CARRIER_ROCKET_1);
 
 //2
 	G_ProjectSource (self->s.origin, monster_flash_offset[MZ2_CARRIER_ROCKET_2], forward, right, start);
-	PredictAim (self->enemy, start, CARRIER_ROCKET_SPEED, qfalse, -0.15, dir, NULL);
+	PredictAim (self->enemy, start, CARRIER_ROCKET_SPEED, false, -0.15, dir, NULL);
 	monster_fire_rocket (self, start, dir, 50, CARRIER_ROCKET_SPEED, MZ2_CARRIER_ROCKET_2);
 
 //3
 	G_ProjectSource (self->s.origin, monster_flash_offset[MZ2_CARRIER_ROCKET_3], forward, right, start);
-	PredictAim (self->enemy, start, CARRIER_ROCKET_SPEED, qfalse, 0, dir, NULL);
+	PredictAim (self->enemy, start, CARRIER_ROCKET_SPEED, false, 0, dir, NULL);
 	monster_fire_rocket (self, start, dir, 50, CARRIER_ROCKET_SPEED, MZ2_CARRIER_ROCKET_3);
 
 //4
 	G_ProjectSource (self->s.origin, monster_flash_offset[MZ2_CARRIER_ROCKET_4], forward, right, start);
-	PredictAim (self->enemy, start, CARRIER_ROCKET_SPEED, qfalse, 0.15, dir, NULL);
+	PredictAim (self->enemy, start, CARRIER_ROCKET_SPEED, false, 0.15, dir, NULL);
 	monster_fire_rocket (self, start, dir, 50, CARRIER_ROCKET_SPEED, MZ2_CARRIER_ROCKET_4);
 }	
 
@@ -834,7 +834,7 @@ void carrier_attack (edict_t *self)
 {
 	vec3_t	vec;
 	float	range, luck;
-	qboolean	enemy_inback, enemy_infront, enemy_below;
+	bool	enemy_inback, enemy_infront, enemy_below;
 
 //	gi.dprintf ("carrier attack\n");
 	
@@ -1019,7 +1019,7 @@ void carrier_reattack_gren (edict_t *self)
 
 void carrier_pain (edict_t *self, edict_t *other, float kick, int damage)
 {
-	qboolean changed = qfalse;
+	bool changed = false;
 
 	if (self->health < (self->max_health / 2))
 		self->s.skinnum = 1;
@@ -1042,7 +1042,7 @@ void carrier_pain (edict_t *self, edict_t *other, float kick, int damage)
 		gi.sound (self, CHAN_VOICE, sound_pain1, 1, ATTN_NONE, 0);
 		if (random() < 0.5)
 		{
-			changed = qtrue;
+			changed = true;
 			self->monsterinfo.currentmove = &carrier_move_pain_light;
 		}
 	}
@@ -1050,7 +1050,7 @@ void carrier_pain (edict_t *self, edict_t *other, float kick, int damage)
 	{
 		gi.sound (self, CHAN_VOICE, sound_pain2, 1, ATTN_NONE, 0);
 		self->monsterinfo.currentmove = &carrier_move_pain_heavy;
-		changed = qtrue;
+		changed = true;
 	}
 
 	// if we changed frames, clean up our little messes
@@ -1081,15 +1081,15 @@ void carrier_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int dama
 	self->monsterinfo.currentmove = &carrier_move_death;
 }
 
-qboolean Carrier_CheckAttack (edict_t *self)
+bool Carrier_CheckAttack (edict_t *self)
 {
 	vec3_t	spot1, spot2;
 	vec3_t	temp;
 	float	chance = 0;
 	trace_t	tr;
-	qboolean	enemy_infront, enemy_inback, enemy_below;
-	int			enemy_range;
-	float		enemy_yaw;
+	bool	enemy_infront, enemy_inback, enemy_below;
+	int		enemy_range;
+	float	enemy_yaw;
 
 	if (self->enemy->health > 0)
 	{
@@ -1108,12 +1108,12 @@ qboolean Carrier_CheckAttack (edict_t *self)
 			if (self->enemy->client && self->monsterinfo.monster_slots > 2)
 			{
 				self->monsterinfo.attack_state = AS_BLIND;
-				return qtrue;
+				return true;
 			}
 				
 			// PGM - we want them to go ahead and shoot at info_notnulls if they can.
 			if(self->enemy->solid != SOLID_NOT || tr.fraction < 1.0)		//PGM
-				return qfalse;
+				return false;
 		}
 	}
 	
@@ -1139,7 +1139,7 @@ qboolean Carrier_CheckAttack (edict_t *self)
 				self->monsterinfo.attack_state = AS_SLIDING;
 			else
 				self->monsterinfo.attack_state = AS_STRAIGHT;
-			return qtrue;
+			return true;
 		}
 	}
 
@@ -1147,11 +1147,11 @@ qboolean Carrier_CheckAttack (edict_t *self)
 	if (enemy_range == RANGE_MELEE)
 	{
 		self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 	
 //	if (level.time < self->monsterinfo.attack_finished)
-//		return qfalse;
+//		return false;
 
 	if (self->monsterinfo.aiflags & AI_STAND_GROUND)
 	{
@@ -1179,7 +1179,7 @@ qboolean Carrier_CheckAttack (edict_t *self)
 	{
 		self->monsterinfo.attack_state = AS_MISSILE;
 //		self->monsterinfo.attack_finished = level.time + 2*random();
-		return qtrue;
+		return true;
 	}
 
 	if (self->flags & FL_FLY)
@@ -1190,7 +1190,7 @@ qboolean Carrier_CheckAttack (edict_t *self)
 			self->monsterinfo.attack_state = AS_STRAIGHT;
 	}
 
-	return qfalse;
+	return false;
 }
 
 void CarrierPrecache ()

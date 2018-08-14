@@ -357,16 +357,16 @@ void TankRocket (edict_t *self)
 	int		rocketSpeed;		// PGM
 	// pmm - blindfire support
 	vec3_t	target;
-	qboolean blindfire = qfalse;
+	bool 	blindfire = false;
 
 	if(!self->enemy || !self->enemy->inuse)		//PGM
 		return;									//PGM
 
 	// pmm - blindfire check
 	if (self->monsterinfo.aiflags & AI_MANUAL_STEERING)
-		blindfire = qtrue;
+		blindfire = true;
 	else
-		blindfire = qfalse;
+		blindfire = false;
 
 	if (self->s.frame == FRAME_attak324)
 		flash_number = MZ2_TANK_ROCKET_1;
@@ -940,15 +940,15 @@ void tank_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int damage,
 
 //===========
 //PGM
-qboolean tank_blocked (edict_t *self, float dist)
+bool tank_blocked (edict_t *self, float dist)
 {
 	if(blocked_checkshot (self, 0.25 + (0.05 * skill->value) ))
-		return qtrue;
+		return true;
 
 	if(blocked_checkplat (self, dist))
-		return qtrue;
+		return true;
 
-	return qfalse;
+	return false;
 }
 //PGM
 //===========
@@ -1026,7 +1026,7 @@ void SP_monster_tank (edict_t *self)
 
 	// PMM
 	self->monsterinfo.aiflags |= AI_IGNORE_SHOTS;
-	self->monsterinfo.blindfire = qtrue;
+	self->monsterinfo.blindfire = true;
 	//pmm
 	if (strcmp(self->classname, "monster_tank_commander") == 0)
 		self->s.skinnum = 2;

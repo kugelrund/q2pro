@@ -489,23 +489,23 @@ void brain_melee(edict_t *self)
 		self->monsterinfo.currentmove = &brain_move_attack2;
 }
 
-static qboolean brain_tounge_attack_ok (vec3_t start, vec3_t end)
+static bool brain_tounge_attack_ok (vec3_t start, vec3_t end)
 {
 	vec3_t	dir, angles;
 
 	// check for max distance
 	VectorSubtract (start, end, dir);
 	if (VectorLength(dir) > 512)
-		return qfalse;
+		return false;
 
 	// check for min/max pitch
 	vectoangles (dir, angles);
 	if (angles[0] < -180)
 		angles[0] += 360;
 	if (fabs(angles[0]) > 30)
-		return qfalse;
+		return false;
 
-	return qtrue;
+	return true;
 }
 
 void brain_tounge_attack (edict_t *self)

@@ -38,8 +38,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include <dlfcn.h>
 #include <errno.h>
 
+#if USE_CLIENT
+#include <pthread.h>
+#endif
+
 #if USE_SDL
-#include <SDL_main.h>
+#include <SDL.h>
 #endif
 
 cvar_t  *sys_basedir;
@@ -47,7 +51,116 @@ cvar_t  *sys_libdir;
 cvar_t  *sys_homedir;
 cvar_t  *sys_forcegamelib;
 
-static qboolean terminate;
+static bool terminate;
+static bool flush_logs;
+
+/*
+===============================================================================
+
+ASYNC WORK QUEUE
+
+===============================================================================
+*/
+
+#if USE_CLIENT
+
+static bool work_initialized;
+static bool work_terminate;
+static pthread_mutex_t work_lock;
+static pthread_cond_t work_cond;
+static pthread_t work_thread;
+static asyncwork_t *pend_head;
+static asyncwork_t *done_head;
+
+static void append_work(asyncwork_t **head, asyncwork_t *work)
+{
+    asyncwork_t *c, **p;
+    for (p = head, c = *head; c; p = &c->next, c = c->next);
+    work->next = NULL;
+    *p = work;
+}
+
+static void complete_work(void)
+{
+    asyncwork_t *work, *next;
+
+    if (!work_initialized)
+        return;
+    if (pthread_mutex_trylock(&work_lock))
+        return;
+    if (q_unlikely(done_head)) {
+        for (work = done_head; work; work = next) {
+            next = work->next;
+            if (work->done_cb)
+                work->done_cb(work->cb_arg);
+            Z_Free(work);
+        }
+        done_head = NULL;
+    }
+    pthread_mutex_unlock(&work_lock);
+}
+
+static void *thread_func(void *arg)
+{
+    pthread_mutex_lock(&work_lock);
+    while (1) {
+        while (!pend_head && !work_terminate)
+            pthread_cond_wait(&work_cond, &work_lock);
+
+        asyncwork_t *work = pend_head;
+        if (!work)
+            break;
+        pend_head = work->next;
+
+        pthread_mutex_unlock(&work_lock);
+        work->work_cb(work->cb_arg);
+        pthread_mutex_lock(&work_lock);
+
+        append_work(&done_head, work);
+    }
+    pthread_mutex_unlock(&work_lock);
+
+    return NULL;
+}
+
+static void shutdown_work(void)
+{
+    if (!work_initialized)
+        return;
+
+    pthread_mutex_lock(&work_lock);
+    work_terminate = true;
+    pthread_cond_signal(&work_cond);
+    pthread_mutex_unlock(&work_lock);
+
+    pthread_join(work_thread, NULL);
+    complete_work();
+
+    pthread_mutex_destroy(&work_lock);
+    pthread_cond_destroy(&work_cond);
+    work_initialized = false;
+}
+
+void Sys_QueueAsyncWork(asyncwork_t *work)
+{
+    if (!work_initialized) {
+        pthread_mutex_init(&work_lock, NULL);
+        pthread_cond_init(&work_cond, NULL);
+        if (pthread_create(&work_thread, NULL, thread_func, NULL))
+            Sys_Error("Couldn't create async work thread");
+        work_initialized = true;
+    }
+
+    pthread_mutex_lock(&work_lock);
+    append_work(&pend_head, Z_CopyStruct(work));
+    pthread_cond_signal(&work_cond);
+    pthread_mutex_unlock(&work_lock);
+}
+
+#else
+#define shutdown_work() (void)0
+#define complete_work() (void)0
+#endif
 
 /*
 ===============================================================================
@@ -64,9 +177,9 @@ void Sys_DebugBreak(void)
 
 unsigned Sys_Milliseconds(void)
 {
-    struct timeval tp;
-    gettimeofday(&tp, NULL);
-    return tp.tv_sec * 1000UL + tp.tv_usec / 1000UL;
+    struct timespec ts;
+    (void)clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * 1000UL + ts.tv_nsec / 1000000UL;
 }
 
 /*
@@ -78,7 +191,11 @@ This function never returns.
 */
 void Sys_Quit(void)
 {
+    shutdown_work();
     tty_shutdown_input();
+#if USE_SDL
+    SDL_Quit();
+#endif
     exit(EXIT_SUCCESS);
 }
 
@@ -115,16 +232,16 @@ void Sys_Sleep(int msec)
 }
 
 #if USE_AC_CLIENT
-qboolean Sys_GetAntiCheatAPI(void)
+bool Sys_GetAntiCheatAPI(void)
 {
     Sys_Sleep(1500);
-    return qfalse;
+    return false;
 }
 #endif
 
 static void hup_handler(int signum)
 {
-    Com_FlushLogs();
+    flush_logs = true;
 }
 
 static void term_handler(int signum)
@@ -135,7 +252,7 @@ static void term_handler(int signum)
     Com_Printf("Received signal %d, exiting\n", signum);
 #endif
 
-    terminate = qtrue;
+    terminate = true;
 }
 
 static void kill_handler(int signum)
@@ -453,10 +570,14 @@ int main(int argc, char **argv)
 
     Qcommon_Init(argc, argv);
     while (!terminate) {
+        complete_work();
+        if (flush_logs) {
+            Com_FlushLogs();
+            flush_logs = false;
+        }
         Qcommon_Frame();
     }
 
     Com_Quit(NULL, ERR_DISCONNECT);
     return EXIT_FAILURE; // never gets here
 }
-

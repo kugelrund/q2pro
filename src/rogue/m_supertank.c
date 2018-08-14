@@ -9,7 +9,7 @@ SUPERTANK
 #include "g_local.h"
 #include "m_supertank.h"
 
-qboolean visible (edict_t *self, edict_t *other);
+bool visible (edict_t *self, edict_t *other);
 
 static int	sound_pain1;
 static int	sound_pain2;
@@ -653,15 +653,15 @@ void supertank_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int da
 
 //===========
 //PGM
-qboolean supertank_blocked (edict_t *self, float dist)
+bool supertank_blocked (edict_t *self, float dist)
 {
 	if(blocked_checkshot (self, 0.25 + (0.05 * skill->value) ))
-		return qtrue;
+		return true;
 
 	if(blocked_checkplat (self, dist))
-		return qtrue;
+		return true;
 
-	return qfalse;
+	return false;
 }
 //PGM
 //===========

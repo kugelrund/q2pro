@@ -47,32 +47,32 @@ extern mmove_t gekk_move_swim_loop;
 extern mmove_t gekk_move_spit;
 extern mmove_t gekk_move_run_start;
 
-extern qboolean gekk_check_jump (edict_t *self);
+extern bool gekk_check_jump (edict_t *self);
 
 //
 // CHECKATTACK
 //
 
-qboolean gekk_check_melee (edict_t *self)
+bool gekk_check_melee (edict_t *self)
 {
 	if (!self->enemy && self->enemy->health <= 0)
-		return qfalse;
+		return false;
 
 	if (range (self, self->enemy) == RANGE_MELEE)
-		return qtrue;
-	return qfalse;
+		return true;
+	return false;
 }
 
-qboolean gekk_check_jump (edict_t *self)
+bool gekk_check_jump (edict_t *self)
 {
 	vec3_t	v;
 	float	distance;
 
 	if (self->absmin[2] > (self->enemy->absmin[2] + 0.75 * self->enemy->size[2]))
-		return qfalse;
+		return false;
 
 	if (self->absmax[2] < (self->enemy->absmin[2] + 0.25 * self->enemy->size[2]))
-		return qfalse;
+		return false;
 
 	v[0] = self->s.origin[0] - self->enemy->s.origin[0];
 	v[1] = self->s.origin[1] - self->enemy->s.origin[1];
@@ -81,18 +81,18 @@ qboolean gekk_check_jump (edict_t *self)
 
 	if (distance < 100)
 	{
-		return qfalse;
+		return false;
 	}
 	if (distance > 100)
 	{
 		if (random() < 0.9)
-			return qfalse;
+			return false;
 	}
 
-	return qtrue;
+	return true;
 }
 
-qboolean gekk_check_jump_close (edict_t *self)
+bool gekk_check_jump_close (edict_t *self)
 {
 	vec3_t	v;
 	float	distance;
@@ -106,39 +106,39 @@ qboolean gekk_check_jump_close (edict_t *self)
 	if (distance < 100)
 	{
 		if (self->s.origin[2] < self->enemy->s.origin[2])
-			return qtrue;
+			return true;
 		else
-			return qfalse;
+			return false;
 	}
 	
-	return qtrue;
+	return true;
 }
 
 
-qboolean gekk_checkattack (edict_t *self)
+bool gekk_checkattack (edict_t *self)
 {
 	if (!self->enemy || self->enemy->health <= 0)
-		return qfalse;
+		return false;
 
 	if (gekk_check_melee(self))
 	{
 		self->monsterinfo.attack_state = AS_MELEE;
-		return qtrue;
+		return true;
 	}
 
 	if (gekk_check_jump(self))
 	{
 		self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 
 	if (gekk_check_jump_close (self) && !self->waterlevel)
 	{	
 		self->monsterinfo.attack_state = AS_MISSILE;
-		return qtrue;
+		return true;
 	}
 
-	return qfalse;
+	return false;
 }
 
 
