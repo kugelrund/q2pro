@@ -139,7 +139,7 @@ static const save_field_t entityfields[] = {
     I(max_health),
     I(gib_health),
     I(deadflag),
-    O(show_hostile),
+    F(show_hostile),
 
     F(powerarmor_time),
 
@@ -793,7 +793,7 @@ A single player death will automatically restore from the
 last save position.
 ============
 */
-void WriteGame(const char *filename, int autosave)
+void WriteGame(const char *filename, qboolean autosave)
 {
     FILE    *f;
     int     i;

@@ -1000,7 +1000,7 @@ struct edict_s
 									// of gclient_s to be a player_state_t
 									// but the rest of it is opaque
 
-	int			inuse;
+	qboolean	inuse;
 	int			linkcount;
 
 	// FIXME: move these fields to a server private sv_entity_t
@@ -1085,7 +1085,7 @@ struct edict_s
 	int			max_health;
 	int			gib_health;
 	int			deadflag;
-	bool		show_hostile;
+	float		show_hostile;
 
 	float		powerarmor_time;
 

@@ -32,7 +32,7 @@ RM ?= rm -f
 RMDIR ?= rm -rf
 MKDIR ?= mkdir -p
 
-CFLAGS ?= -O2 -Wall -g -MMD -D_FILE_OFFSET_BITS=64 $(INCLUDES)
+CFLAGS ?= -O2 -Wall -g -MMD $(INCLUDES)
 RCFLAGS ?=
 LDFLAGS ?=
 LIBS ?=
@@ -110,6 +110,8 @@ else
         LDFLAGS_x += -Wl,--no-undefined
     endif
 
+    CFLAGS_s += -D_FILE_OFFSET_BITS=64
+    CFLAGS_c += -D_FILE_OFFSET_BITS=64
     CFLAGS_g += -fPIC
     CFLAGS_r += -fPIC
     CFLAGS_x += -fPIC

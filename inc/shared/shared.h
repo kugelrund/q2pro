@@ -48,6 +48,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define q_countof(a)        (sizeof(a) / sizeof(a[0]))
 
 typedef unsigned char byte;
+typedef enum { qfalse, qtrue } qboolean;    // ABI compat only, don't use
 typedef int qhandle_t;
 
 #ifndef NULL
@@ -686,7 +687,7 @@ typedef struct cvar_s {
     char        *string;
     char        *latched_string;    // for CVAR_LATCH vars
     int         flags;
-    int         modified;   // set each time the cvar is changed
+    qboolean    modified;   // set each time the cvar is changed
     float       value;
     struct cvar_s *next;
 
@@ -800,16 +801,6 @@ typedef struct cplane_s {
 
 #define PLANE_NON_AXIAL 6
 
-// structure offset for asm code
-#define CPLANE_NORMAL_X         0
-#define CPLANE_NORMAL_Y         4
-#define CPLANE_NORMAL_Z         8
-#define CPLANE_DIST             12
-#define CPLANE_TYPE             16
-#define CPLANE_SIGNBITS         17
-#define CPLANE_PAD0             18
-#define CPLANE_PAD1             19
-
 typedef struct csurface_s {
     char        name[16];
     int         flags;
@@ -818,8 +809,8 @@ typedef struct csurface_s {
 
 // a trace is returned when a box is swept through the world
 typedef struct {
-    int         allsolid;   // if true, plane is not valid
-    int         startsolid; // if true, the initial point was in a solid area
+    qboolean    allsolid;   // if true, plane is not valid
+    qboolean    startsolid; // if true, the initial point was in a solid area
     float       fraction;   // time completed, 1.0 = didn't hit anything
     vec3_t      endpos;     // final position
     cplane_t    plane;      // surface normal at impact
@@ -864,7 +855,7 @@ typedef struct {
     byte        pm_time;        // each unit = 8 ms
     short       gravity;
     short       delta_angles[3];    // add to command angles to get view direction
-    // changed by spawns, rotating objects, and teleporters
+                                    // changed by spawns, rotating objects, and teleporters
 } pmove_state_t;
 
 
@@ -894,7 +885,7 @@ typedef struct {
 
     // command (in)
     usercmd_t       cmd;
-    int             snapinitial;    // if s has been changed outside pmove
+    qboolean        snapinitial;    // if s has been changed outside pmove
 
     // results (out)
     int         numtouch;
