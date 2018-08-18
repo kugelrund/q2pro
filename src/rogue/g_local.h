@@ -24,19 +24,6 @@
 
 //==================================================================
 
-#ifndef _WIN32
-#include <nan.h>
-#define min(a,b) ((a) < (b) ? (a) : (b))
-#define max(a,b) ((a) > (b) ? (a) : (b))
-#ifdef __sun__
-#define _isnan(a) (NaN((a)))
-#else
-#define _isnan(a) ((a)==NAN)
-#endif
-#endif
-
-//==================================================================
-
 // view pitching times
 #define DAMAGE_TIME		0.5
 #define	FALL_TIME		0.3
