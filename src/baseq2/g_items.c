@@ -646,6 +646,16 @@ bool Pickup_Armor(edict_t *ent, edict_t *other)
     if (!(ent->spawnflags & DROPPED_ITEM) && (deathmatch->value))
         SetRespawn(ent, 20);
 
+    if (Q_stricmp(level.mapname, "waste3") == 0) {
+        // ugly hack for the secret you don't get credit for
+        vec3_t secret_armor_origin = {-1622.0f, -1238.0f, 143.03125f};
+        if (Distance(secret_armor_origin, ent->s.origin) < 1.0f) {
+            gi.sound(ent, CHAN_VOICE, gi.soundindex("misc/secret.wav"), 1, ATTN_NORM, 0);
+            gi.centerprintf(other, "%s", "You have found a secret.");
+            level.found_secrets++;
+        }
+    }
+
     return true;
 }
 
