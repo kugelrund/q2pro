@@ -192,7 +192,7 @@ typedef struct {
 
     void (*DebugGraph)(float value, int color);
 
-    void (*SpeedrunUnpauseTimer)(void);
+    void (*SpeedrunTimerAddMilliseconds)(int);
     int (*SpeedrunPauseTimer)(void);
     void (*SpeedrunLevelFinished)(void);
     void (*SpeedrunGetTotalTimeString)(
@@ -235,7 +235,7 @@ typedef struct {
     void (*ClientCommand)(edict_t *ent);
     void (*ClientThink)(edict_t *ent, usercmd_t *cmd);
 
-    void (*RunFrame)(void);
+    void (*RunFrame)(bool);
 
     // ServerCommand will be called when an "sv <command>" command is issued on the
     // server console.

@@ -1068,8 +1068,6 @@ static void CL_Changing_f(void)
         return;
     }
 
-    SpeedrunPauseTimer();
-
     if (cls.demo.recording)
         CL_Stop_f();
 
@@ -2489,7 +2487,6 @@ Perform complete restart of the renderer subsystem.
 */
 static void CL_RestartRefresh_f(void)
 {
-    SpeedrunPauseTimer();
     CL_RestartRefresh(true);
 }
 
@@ -2998,7 +2995,6 @@ void CL_CheckForPause(void)
         // don't pause when running timedemo!
         if (cl_paused->integer && !com_timedemo->integer) {
             if (!sv_paused->integer) {
-                SpeedrunPauseTimer();
                 Cvar_Set("sv_paused", "1");
                 IN_Activate();
             }

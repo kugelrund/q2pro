@@ -1682,6 +1682,7 @@ static inline bool check_paused(void)
 
 resume:
     if (sv_paused->integer) {
+        SpeedrunUnpauseTimer();
         Cvar_Set("sv_paused", "0");
         IN_Activate();
     }
@@ -1708,7 +1709,7 @@ static void SV_RunGameFrame(void)
     X86_PUSH_FPCW;
     X86_SINGLE_FPCW;
 
-    ge->RunFrame();
+    ge->RunFrame(true);
 
     X86_POP_FPCW;
 

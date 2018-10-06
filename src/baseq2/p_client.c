@@ -1524,7 +1524,6 @@ void ClientThink(edict_t *ent, usercmd_t *ucmd)
     pmove_t pm;
 
     CheckSpeedrunFinished(ent->client);
-    SpeedrunRunTimer();
 
     level.current_entity = ent;
     client = ent->client;

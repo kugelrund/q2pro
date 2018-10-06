@@ -69,8 +69,8 @@ void BeginIntermission (edict_t *targ)
 	if (level.intermissiontime)
 		return;		// already activated
 
-	gi.SpeedrunPauseTimer();
 	gi.SpeedrunLevelFinished();
+	gi.SpeedrunPauseTimer();
 	PrintSpeedrunTimer();
 
 	game.autosaved = false;

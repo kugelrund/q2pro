@@ -85,7 +85,7 @@ void ReadGame(const char *filename);
 void WriteLevel(const char *filename);
 void ReadLevel(const char *filename);
 void InitGame(void);
-void G_RunFrame(void);
+void G_RunFrame(bool is_frame_timed_speedrun);
 
 
 //===================================================================
@@ -93,7 +93,6 @@ void G_RunFrame(void);
 
 void ShutdownGame(void)
 {
-    gi.SpeedrunPauseTimer();
     gi.dprintf("==== ShutdownGame ====\n");
 
     gi.FreeTags(TAG_LEVEL);
@@ -461,13 +460,16 @@ G_RunFrame
 Advances the world by 0.1 seconds
 ================
 */
-void G_RunFrame(void)
+void G_RunFrame(bool is_frame_timed_speedrun)
 {
     int     i;
     edict_t *ent;
 
     level.framenum++;
     level.time = level.framenum * FRAMETIME;
+    if (is_frame_timed_speedrun && !level.intermissiontime) {
+        gi.SpeedrunTimerAddMilliseconds(FRAMETIME * 1000);
+    }
 
     // choose a client for monsters to target this frame
     AI_SetSightClient();

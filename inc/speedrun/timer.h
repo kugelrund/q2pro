@@ -7,6 +7,7 @@
 
 void SpeedrunResetTimer();
 void SpeedrunUpdateTimer();
+void SpeedrunTimerAddMilliseconds(int msec);
 void SpeedrunUnpauseTimer();
 int SpeedrunPauseTimer();
 void SpeedrunLevelFinished();

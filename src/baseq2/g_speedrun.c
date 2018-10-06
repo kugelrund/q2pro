@@ -48,17 +48,8 @@ void CheckSpeedrunFinished(const gclient_t *client)
     const int position_y = client->ps.pmove.origin[1];
     if (position_y <= -16678 || position_y >= 1318)
     {
-        gi.SpeedrunPauseTimer();
         gi.SpeedrunLevelFinished();
         PrintSpeedrunTimer();
         speedrun_finished = true;
-    }
-}
-
-void SpeedrunRunTimer()
-{
-    if (!level.intermissiontime && !speedrun_finished)
-    {
-        gi.SpeedrunUnpauseTimer();
     }
 }

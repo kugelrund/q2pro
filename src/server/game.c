@@ -921,7 +921,7 @@ void SV_InitGameProgs(void)
     import.SetAreaPortalState = PF_SetAreaPortalState;
     import.AreasConnected = PF_AreasConnected;
 
-    import.SpeedrunUnpauseTimer = SpeedrunUnpauseTimer;
+    import.SpeedrunTimerAddMilliseconds = SpeedrunTimerAddMilliseconds;
     import.SpeedrunPauseTimer = SpeedrunPauseTimer;
     import.SpeedrunLevelFinished = SpeedrunLevelFinished;
     import.SpeedrunGetTotalTimeString = SpeedrunGetTotalTimeString;

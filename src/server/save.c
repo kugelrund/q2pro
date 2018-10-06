@@ -548,15 +548,15 @@ void SV_CheckForSavegame(mapcmd_t *cmd)
 
     if (cmd->loadgame) {
         // called from SV_Loadgame_f
-        ge->RunFrame();
-        ge->RunFrame();
+        ge->RunFrame(true);
+        ge->RunFrame(true);
     } else {
         int i;
 
         // coming back to a level after being in a different
         // level, so run it for ten seconds
         for (i = 0; i < 100; i++)
-            ge->RunFrame();
+            ge->RunFrame(false);
     }
 }
 

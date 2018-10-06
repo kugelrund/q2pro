@@ -20,11 +20,3 @@ void PrintSpeedrunTimer()
 	           "==============================\n",
 	           total_time_string, level_time_string);
 }
-
-void SpeedrunRunTimer()
-{
-	if (!level.intermissiontime)
-	{
-		gi.SpeedrunUnpauseTimer();
-	}
-}
