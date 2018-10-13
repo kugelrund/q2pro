@@ -49,6 +49,7 @@ void CheckSpeedrunFinished(const gclient_t *client)
     if (position_y <= -16678 || position_y >= 1318)
     {
         gi.SpeedrunLevelFinished();
+        gi.SpeedrunPauseTimer();
         PrintSpeedrunTimer();
         speedrun_finished = true;
     }
