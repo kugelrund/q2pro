@@ -295,9 +295,9 @@ Pulsing black light with sphere in the center
 */
 void blacklight_think (edict_t *self)
 {
-	self->s.angles[0] = rand()%360;
-	self->s.angles[1] = rand()%360;
-	self->s.angles[2] = rand()%360;
+	self->s.angles[0] = Q_rand()%360;
+	self->s.angles[1] = Q_rand()%360;
+	self->s.angles[2] = Q_rand()%360;
 	self->nextthink = level.time + 0.1;
 }
 
@@ -325,9 +325,9 @@ Translucent pulsing orb with speckles
 */
 void orb_think (edict_t *self)
 {
-	self->s.angles[0] = rand()%360;
-	self->s.angles[1] = rand()%360;
-	self->s.angles[2] = rand()%360;
+	self->s.angles[0] = Q_rand()%360;
+	self->s.angles[1] = Q_rand()%360;
+	self->s.angles[2] = Q_rand()%360;
 //	self->s.effects |= (EF_TRACKERTRAIL|EF_DOUBLE);
 	self->nextthink = level.time + 0.1;
 }

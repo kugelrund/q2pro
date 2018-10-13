@@ -65,12 +65,12 @@ realcheck:
     start[2] = mins[2];
 
 // the midpoint must be within 16 of the bottom
-    start[0] = stop[0] = (mins[0] + maxs[0]) * 0.5;
-    start[1] = stop[1] = (mins[1] + maxs[1]) * 0.5;
+    start[0] = stop[0] = (mins[0] + maxs[0]) * 0.5f;
+    start[1] = stop[1] = (mins[1] + maxs[1]) * 0.5f;
     stop[2] = start[2] - 2 * STEPSIZE;
     trace = gi.trace(start, vec3_origin, vec3_origin, stop, ent, MASK_MONSTERSOLID);
 
-    if (trace.fraction == 1.0)
+    if (trace.fraction == 1.0f)
         return false;
     mid = bottom = trace.endpos[2];
 
@@ -82,9 +82,9 @@ realcheck:
 
             trace = gi.trace(start, vec3_origin, vec3_origin, stop, ent, MASK_MONSTERSOLID);
 
-            if (trace.fraction != 1.0 && trace.endpos[2] > bottom)
+            if (trace.fraction != 1.0f && trace.endpos[2] > bottom)
                 bottom = trace.endpos[2];
-            if (trace.fraction == 1.0 || mid - trace.endpos[2] > STEPSIZE)
+            if (trace.fraction == 1.0f || mid - trace.endpos[2] > STEPSIZE)
                 return false;
         }
 
@@ -327,7 +327,7 @@ bool SV_StepDirection(edict_t *ent, float yaw, float dist)
     ent->ideal_yaw = yaw;
     M_ChangeYaw(ent);
 
-    yaw = yaw * M_PI * 2 / 360;
+    yaw = DEG2RAD(yaw);
     move[0] = cos(yaw) * dist;
     move[1] = sin(yaw) * dist;
     move[2] = 0;
@@ -408,7 +408,7 @@ void SV_NewChaseDir(edict_t *actor, edict_t *enemy, float dist)
     }
 
 // try other directions
-    if (((rand() & 3) & 1) || fabs(deltay) > fabs(deltax)) {
+    if (((Q_rand() & 3) & 1) || fabsf(deltay) > fabsf(deltax)) {
         tdir = d[1];
         d[1] = d[2];
         d[2] = tdir;
@@ -427,7 +427,7 @@ void SV_NewChaseDir(edict_t *actor, edict_t *enemy, float dist)
     if (olddir != DI_NODIR && SV_StepDirection(actor, olddir, dist))
         return;
 
-    if (rand() & 1) { /*randomly determine direction of search*/
+    if (Q_rand() & 1) { /*randomly determine direction of search*/
         for (tdir = 0 ; tdir <= 315 ; tdir += 45)
             if (tdir != turnaround && SV_StepDirection(actor, tdir, dist))
                 return;
@@ -488,7 +488,7 @@ void M_MoveToGoal(edict_t *ent, float dist)
         return;
 
 // bump around...
-    if ((rand() & 3) == 1 || !SV_StepDirection(ent, ent->ideal_yaw, dist)) {
+    if ((Q_rand() & 3) == 1 || !SV_StepDirection(ent, ent->ideal_yaw, dist)) {
         if (ent->inuse)
             SV_NewChaseDir(ent, goal, dist);
     }
@@ -507,8 +507,7 @@ bool M_walkmove(edict_t *ent, float yaw, float dist)
     if (!ent->groundentity && !(ent->flags & (FL_FLY | FL_SWIM)))
         return false;
 
-    yaw = yaw * M_PI * 2 / 360;
-
+    yaw = DEG2RAD(yaw);
     move[0] = cos(yaw) * dist;
     move[1] = sin(yaw) * dist;
     move[2] = 0;

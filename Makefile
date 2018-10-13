@@ -32,7 +32,7 @@ RM ?= rm -f
 RMDIR ?= rm -rf
 MKDIR ?= mkdir -p
 
-CFLAGS ?= -O2 -Wall -g -MMD $(INCLUDES)
+CFLAGS ?= -std=gnu99 -O2 -Wall -g -MMD $(INCLUDES)
 RCFLAGS ?=
 LDFLAGS ?=
 LIBS ?=
@@ -61,6 +61,7 @@ ifdef CONFIG_WINDOWS
         CONFIG_X86_GAME_ABI_HACK := y
     else
         CONFIG_X86_GAME_ABI_HACK :=
+        CONFIG_X86_NO_SSE_MATH := y
     endif
 
     LDFLAGS_s += -mconsole
@@ -87,6 +88,7 @@ else
     # Disable x86 features on other arches
     ifneq ($(CPU),i386)
         CONFIG_X86_GAME_ABI_HACK :=
+        CONFIG_X86_NO_SSE_MATH := y
     endif
 
     # Disable Linux features on other systems
@@ -110,11 +112,15 @@ else
         LDFLAGS_x += -Wl,--no-undefined
     endif
 
-    CFLAGS_s += -D_FILE_OFFSET_BITS=64
-    CFLAGS_c += -D_FILE_OFFSET_BITS=64
     CFLAGS_g += -fPIC
     CFLAGS_r += -fPIC
     CFLAGS_x += -fPIC
+endif
+
+ifndef CONFIG_X86_NO_SSE_MATH
+    CFLAGS_s += -msse -mfpmath=sse
+    CFLAGS_c += -msse -mfpmath=sse
+    CFLAGS_g += -msse -mfpmath=sse
 endif
 
 BUILD_DEFS := -DCPUSTRING='"$(CPU)"'
@@ -629,8 +635,8 @@ else
     LIBS_x += -lm
 
     ifeq ($(SYS),Linux)
-        LIBS_s += -ldl
-        LIBS_c += -ldl -lpthread
+        LIBS_s += -ldl -lrt
+        LIBS_c += -ldl -lrt -lpthread
     endif
 endif
 
@@ -644,16 +650,6 @@ endif
 ifdef CONFIG_DEBUG
     CFLAGS_c += -D_DEBUG
     CFLAGS_s += -D_DEBUG
-endif
-
-ifeq ($(CPU),x86)
-    OBJS_c += src/common/x86/fpu.o
-    OBJS_s += src/common/x86/fpu.o
-endif
-
-ifeq ($(CPU),i386)
-    OBJS_c += src/common/x86/fpu.o
-    OBJS_s += src/common/x86/fpu.o
 endif
 
 ### Targets ###

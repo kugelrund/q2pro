@@ -24,7 +24,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "client/sound/dma.h"
 #endif
 
-// !!! if this is changed, the asm code must change !!!
 typedef struct samplepair_s {
     int         left;
     int         right;
@@ -64,7 +63,6 @@ typedef struct playsound_s {
     unsigned    begin;          // begin on this sample
 } playsound_t;
 
-// !!! if this is changed, the asm code must change !!!
 typedef struct channel_s {
     sfx_t       *sfx;           // sfx number
     int         leftvol;        // 0-255 volume
@@ -129,7 +127,7 @@ void AL_Update(void);
 // only begin attenuating sound volumes when outside the FULLVOLUME range
 #define     SOUND_FULLVOLUME    80
 
-#define     SOUND_LOOPATTENUATE 0.003
+#define     SOUND_LOOPATTENUATE 0.003f
 
 typedef enum {
     SS_NOT,

@@ -16,6 +16,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#define _GNU_SOURCE
 #include "shared/shared.h"
 #include "shared/list.h"
 #include "common/common.h"
@@ -633,16 +634,19 @@ int FS_CreatePath(char *path)
 FS_FCloseFile
 ==============
 */
-void FS_FCloseFile(qhandle_t f)
+int FS_FCloseFile(qhandle_t f)
 {
     file_t *file = file_for_handle(f);
+    int ret;
 
     if (!file)
-        return;
+        return Q_ERR_BADF;
 
+    ret = file->error;
     switch (file->type) {
     case FS_REAL:
-        fclose(file->fp);
+        if (fclose(file->fp))
+            ret = Q_ERRNO;
         break;
     case FS_PAK:
         if (file->unique) {
@@ -652,7 +656,8 @@ void FS_FCloseFile(qhandle_t f)
         break;
 #if USE_ZLIB
     case FS_GZ:
-        gzclose(file->zfp);
+        if (gzclose(file->zfp))
+            ret = Q_ERR_LIBRARY_ERROR;
         break;
     case FS_ZIP:
         if (file->unique) {
@@ -662,10 +667,12 @@ void FS_FCloseFile(qhandle_t f)
         break;
 #endif
     default:
+        ret = Q_ERR_NOSYS;
         break;
     }
 
     memset(file, 0, sizeof(*file));
+    return ret;
 }
 
 static int get_path_info(const char *path, file_info_t *info)
@@ -719,9 +726,8 @@ static int get_fp_info(FILE *fp, file_info_t *info)
 
 FILE *Q_fopen(const char *path, const char *mode)
 {
-#ifndef _GNU_SOURCE
-    if (mode[0] == 'w' && mode[1] == 'x') {
 #ifdef _WIN32
+    if (mode[0] == 'w' && mode[1] == 'x') {
         int flags = _O_WRONLY | _O_CREAT | _O_EXCL | _S_IREAD | _S_IWRITE;
         int fd;
         FILE *fp;
@@ -738,24 +744,8 @@ FILE *Q_fopen(const char *path, const char *mode)
             _close(fd);
 
         return fp;
-#else
-        int flags = O_WRONLY | O_CREAT | O_EXCL;
-        int perm = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
-        int fd;
-        FILE *fp;
-
-        fd = open(path, flags, perm);
-        if (fd == -1)
-            return NULL;
-
-        fp = fdopen(fd, "wb");
-        if (fp == NULL)
-            close(fd);
-
-        return fp;
-#endif
     }
-#endif // _GNU_SOURCE
+#endif
 
     return fopen(path, mode);
 }
@@ -934,7 +924,7 @@ fail:
 
 static int check_header_coherency(FILE *fp, packfile_t *entry)
 {
-    unsigned flags, comp_mtd, comp_len, file_len, name_size, xtra_size;
+    unsigned ofs, flags, comp_mtd, comp_len, file_len, name_size, xtra_size;
     byte header[ZIP_SIZELOCALHEADER];
 
     if (os_fseek(fp, entry->filepos, SEEK_SET) == -1)
@@ -965,7 +955,11 @@ static int check_header_coherency(FILE *fp, packfile_t *entry)
             return Q_ERR_NOT_COHERENT;
     }
 
-    entry->filepos += ZIP_SIZELOCALHEADER + name_size + xtra_size;
+    ofs = ZIP_SIZELOCALHEADER + name_size + xtra_size;
+    if (entry->filepos + entry->complen > INT_MAX - ofs)
+        return Q_ERR_NOT_COHERENT;
+
+    entry->filepos += ofs;
     entry->coherent = true;
     return Q_ERR_SUCCESS;
 }
@@ -1830,6 +1824,13 @@ done:
     return len;
 }
 
+static int write_and_close(const void *data, size_t len, qhandle_t f)
+{
+    int ret1 = FS_Write(data, len, f);
+    int ret2 = FS_FCloseFile(f);
+    return ret1 < 0 ? ret1 : ret2;
+}
+
 /*
 ================
 FS_WriteFile
@@ -1842,13 +1843,9 @@ int FS_WriteFile(const char *path, const void *data, size_t len)
 
     // TODO: write to temp file perhaps?
     ret = FS_FOpenFile(path, &f, FS_MODE_WRITE);
-    if (!f) {
-        return ret;
+    if (f) {
+        ret = write_and_close(data, len, f);
     }
-
-    ret = FS_Write(data, len, f);
-
-    FS_FCloseFile(f);
     return ret;
 }
 
@@ -1874,10 +1871,7 @@ bool FS_EasyWriteFile(char *buf, size_t size, unsigned mode,
         return false;
     }
 
-    ret = FS_Write(data, len, f);
-
-    FS_FCloseFile(f);
-
+    ret = write_and_close(data, len, f);
     if (ret < 0) {
         Com_EPrintf("Couldn't write %s: %s\n", buf, Q_ErrorString(ret));
         return false;
@@ -2084,7 +2078,7 @@ static pack_t *load_pak_file(const char *packfile)
     for (i = 0, dfile = info; i < num_files; i++, dfile++) {
         dfile->filepos = LittleLong(dfile->filepos);
         dfile->filelen = LittleLong(dfile->filelen);
-        if (dfile->filelen > INT_MAX || dfile->filepos > INT_MAX) {
+        if (dfile->filelen > INT_MAX || dfile->filepos > INT_MAX - dfile->filelen) {
             Com_Printf("%s has bad directory structure\n", packfile);
             goto fail;
         }
@@ -2203,7 +2197,7 @@ static unsigned get_file_info(FILE *fp, unsigned pos, packfile_t *file, size_t *
     comm_size = LittleShortMem(&header[32]);
     file_pos = LittleLongMem(&header[42]);
 
-    if (file_len > INT_MAX || comp_len > INT_MAX || file_pos > INT_MAX)
+    if (file_len > INT_MAX || comp_len > INT_MAX || file_pos > INT_MAX - comp_len)
         return 0;
 
     if (!file_len || !comp_len) {
@@ -2608,10 +2602,7 @@ static int alphacmp(const void *p1, const void *p2)
 FS_ListFiles
 =================
 */
-void **FS_ListFiles(const char *path,
-                    const char *filter,
-                    unsigned   flags,
-                    int        *count_p)
+void **FS_ListFiles(const char *path, const char *filter, unsigned flags, int *count_p)
 {
     searchpath_t    *search;
     packfile_t      *file;

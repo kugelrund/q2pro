@@ -574,13 +574,13 @@ void Widow2Crunch (edict_t *self)
 	// 70 + 32
 	VectorSet (aim, 150, 0, 4);
 	if (self->s.frame != FRAME_tongs07)
-		fire_hit (self, aim, 20 + (rand() % 6), 0);
+		fire_hit (self, aim, 20 + (Q_rand() % 6), 0);
 	else
 	{
 		if (self->enemy->groundentity)
-			fire_hit (self, aim, (20 + (rand() % 6)), 500);
+			fire_hit (self, aim, (20 + (Q_rand() % 6)), 500);
 		else	// not as much kick if they're in the air .. makes it harder to land on her head
-			fire_hit (self, aim, (20 + (rand() % 6)), 250);
+			fire_hit (self, aim, (20 + (Q_rand() % 6)), 250);
 	}
 }
 
@@ -1067,7 +1067,7 @@ bool Widow2_CheckAttack (edict_t *self)
 				// melee attack ok
 
 				// be nice in easy mode
-				if (skill->value == 0 && (rand()&3) )
+				if (skill->value == 0 && (Q_rand()&3) )
 					return false;
 
 				if (self->monsterinfo.melee)
@@ -1448,9 +1448,9 @@ void WidowExplode (edict_t *self)
 
 //redo:
 	VectorCopy (self->s.origin, org);
-	org[2] += 24 + (rand()&15);
+	org[2] += 24 + (Q_rand()&15);
 	if (self->count < 8)
-		org[2] += 24 + (rand()&31);
+		org[2] += 24 + (Q_rand()&31);
 	switch (self->count)
 	{
 	case 0:

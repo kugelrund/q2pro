@@ -208,7 +208,7 @@ void infantry_pain (edict_t *self, edict_t *other, float kick, int damage)
 	if (skill->value == 3)
 		return;		// no pain anims in nightmare
 
-	n = rand() % 2;
+	n = Q_rand() % 2;
 	if (n == 0)
 	{
 		self->monsterinfo.currentmove = &infantry_move_pain1;
@@ -388,7 +388,7 @@ void infantry_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int dam
 	self->deadflag = DEAD_DEAD;
 	self->takedamage = DAMAGE_YES;
 
-	n = rand() % 3;
+	n = Q_rand() % 3;
 	if (n == 0)
 	{
 		self->monsterinfo.currentmove = &infantry_move_death1;
@@ -460,7 +460,7 @@ void infantry_set_firetime (edict_t *self)
 {
 	int		n;
 
-	n = (rand() & 15) + 5;
+	n = (Q_rand() & 15) + 5;
 	self->monsterinfo.pausetime = level.time + n * FRAMETIME;
 }
 
@@ -510,7 +510,7 @@ void infantry_smack (edict_t *self)
 	vec3_t	aim;
 
 	VectorSet (aim, MELEE_DISTANCE, 0, 0);
-	if (fire_hit (self, aim, (5 + (rand() % 5)), 50))
+	if (fire_hit (self, aim, (5 + (Q_rand() % 5)), 50))
 		gi.sound (self, CHAN_WEAPON, sound_punch_hit, 1, ATTN_NORM, 0);
 }
 

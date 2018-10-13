@@ -473,6 +473,7 @@ void fire_grenade (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int s
 	edict_t	*grenade;
 	vec3_t	dir;
 	vec3_t	forward, right, up;
+	float   scale;
 
 	vectoangles (aimdir, dir);
 	AngleVectors (dir, forward, right, up);
@@ -480,8 +481,10 @@ void fire_grenade (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int s
 	grenade = G_Spawn();
 	VectorCopy (start, grenade->s.origin);
 	VectorScale (aimdir, speed, grenade->velocity);
-	VectorMA (grenade->velocity, 200 + crandom() * 10.0, up, grenade->velocity);
-	VectorMA (grenade->velocity, crandom() * 10.0, right, grenade->velocity);
+	scale = 200 + crandom() * 10.0f;
+	VectorMA (grenade->velocity, scale, up, grenade->velocity);
+	scale = crandom() * 10.0f;
+	VectorMA (grenade->velocity, scale, right, grenade->velocity);
 	VectorSet (grenade->avelocity, 300, 300, 300);
 	grenade->movetype = MOVETYPE_BOUNCE;
 	grenade->clipmask = MASK_SHOT;
@@ -506,6 +509,7 @@ void fire_grenade2 (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int 
 	edict_t	*grenade;
 	vec3_t	dir;
 	vec3_t	forward, right, up;
+	float   scale;
 
 	vectoangles (aimdir, dir);
 	AngleVectors (dir, forward, right, up);
@@ -513,8 +517,10 @@ void fire_grenade2 (edict_t *self, vec3_t start, vec3_t aimdir, int damage, int 
 	grenade = G_Spawn();
 	VectorCopy (start, grenade->s.origin);
 	VectorScale (aimdir, speed, grenade->velocity);
-	VectorMA (grenade->velocity, 200 + crandom() * 10.0, up, grenade->velocity);
-	VectorMA (grenade->velocity, crandom() * 10.0, right, grenade->velocity);
+	scale = 200 + crandom() * 10.0f;
+	VectorMA (grenade->velocity, scale, up, grenade->velocity);
+	scale = crandom() * 10.0f;
+	VectorMA (grenade->velocity, scale, right, grenade->velocity);
 	VectorSet (grenade->avelocity, 300, 300, 300);
 	grenade->movetype = MOVETYPE_BOUNCE;
 	grenade->clipmask = MASK_SHOT;
@@ -582,7 +588,7 @@ void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *su
 		{
 			if ((surf) && !(surf->flags & (SURF_WARP|SURF_TRANS33|SURF_TRANS66|SURF_FLOWING)))
 			{
-				n = rand() % 5;
+				n = Q_rand() % 5;
 				while(n--)
 					ThrowDebris (ent, "models/objects/debris2/tris.md2", 2, ent->s.origin);
 			}

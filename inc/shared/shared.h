@@ -163,8 +163,8 @@ typedef struct vrect_s {
     int             x, y, width, height;
 } vrect_t;
 
-#define DEG2RAD(a) (a * M_PI) / 180.0F
-#define RAD2DEG(a) (a * 180.0F) / M_PI
+#define DEG2RAD(a)      ((a) * (M_PI / 180))
+#define RAD2DEG(a)      ((a) * (180 / M_PI))
 
 #define ALIGN(x, a)     (((x) + (a) - 1) & ~((a) - 1))
 
@@ -204,7 +204,7 @@ typedef struct vrect_s {
          (d)[2]=(a)[2]+(b)[2]*(c)[2])
 #define VectorEmpty(v) ((v)[0]==0&&(v)[1]==0&&(v)[2]==0)
 #define VectorCompare(v1,v2)    ((v1)[0]==(v2)[0]&&(v1)[1]==(v2)[1]&&(v1)[2]==(v2)[2])
-#define VectorLength(v)     (sqrt(DotProduct((v),(v))))
+#define VectorLength(v)     (sqrtf(DotProduct((v),(v))))
 #define VectorLengthSquared(v)      (DotProduct((v),(v)))
 #define VectorScale(in,scale,out) \
         ((out)[0]=(in)[0]*(scale), \
@@ -218,7 +218,7 @@ typedef struct vrect_s {
         (((v1)[0]-(v2)[0])*((v1)[0]-(v2)[0])+ \
         ((v1)[1]-(v2)[1])*((v1)[1]-(v2)[1])+ \
         ((v1)[2]-(v2)[2])*((v1)[2]-(v2)[2]))
-#define Distance(v1,v2) (sqrt(DistanceSquared(v1,v2)))
+#define Distance(v1,v2) (sqrtf(DistanceSquared(v1,v2)))
 #define LerpAngles(a,b,c,d) \
         ((d)[0]=LerpAngle((a)[0],(b)[0],c), \
          (d)[1]=LerpAngle((a)[1],(b)[1],c), \
@@ -386,18 +386,6 @@ static inline float anglemod(float a)
     return a;
 }
 
-static inline int rand_byte(void)
-{
-    int r = rand();
-
-    int b1 = (r >> 24) & 255;
-    int b2 = (r >> 16) & 255;
-    int b3 = (r >>  8) & 255;
-    int b4 = (r) & 255;
-
-    return b1 ^ b2 ^ b3 ^ b4;
-}
-
 static inline int Q_align(int value, int align)
 {
     int mod = value % align;
@@ -414,6 +402,10 @@ static inline int Q_gcd(int a, int b)
     return a;
 }
 
+void Q_srand(uint32_t seed);
+uint32_t Q_rand(void);
+uint32_t Q_rand_uniform(uint32_t n);
+
 #define clamp(a,b,c)    ((a)<(b)?(a)=(b):(a)>(c)?(a)=(c):(a))
 #define cclamp(a,b,c)   ((b)>(c)?clamp(a,c,b):clamp(a,b,c))
 
@@ -425,8 +417,8 @@ static inline int Q_gcd(int a, int b)
 #define min(a,b) ((a)<(b)?(a):(b))
 #endif
 
-#define frand()     ((rand() & 32767) * (1.0 / 32767))
-#define crand()     ((rand() & 32767) * (2.0 / 32767) - 1)
+#define frand()     ((int32_t)Q_rand() * 0x1p-32f + 0.5f)
+#define crand()     ((int32_t)Q_rand() * 0x1p-31f)
 
 #define Q_rint(x)   ((x) < 0 ? ((int)((x) - 0.5f)) : ((int)((x) + 0.5f)))
 
@@ -778,7 +770,6 @@ COLLISION DETECTION
 
 
 // plane_t structure
-// !!! if this is changed, it must be changed in asm code too !!!
 typedef struct cplane_s {
     vec3_t  normal;
     float   dist;
@@ -1461,7 +1452,7 @@ ROGUE - VERSIONS
 #define MAX_FRAMEDIV    6
 
 #define ANGLE2SHORT(x)  ((int)((x)*65536/360) & 65535)
-#define SHORT2ANGLE(x)  ((x)*(360.0/65536))
+#define SHORT2ANGLE(x)  ((x)*(360.0f/65536))
 
 
 //

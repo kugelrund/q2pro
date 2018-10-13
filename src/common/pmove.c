@@ -69,7 +69,7 @@ Slide off of the impacting object
 returns the blocked flags (1 = floor, 2 = step / wall)
 ==================
 */
-#define STOP_EPSILON    0.1
+#define STOP_EPSILON    0.1f
 
 static void PM_ClipVelocity(vec3_t in, vec3_t normal, vec3_t out, float overbounce)
 {
@@ -101,7 +101,7 @@ Returns a new origin, velocity, and contact entity
 Does not modify any world state?
 ==================
 */
-#define MIN_STEP_NORMAL 0.7     // can't step up onto very steep slopes
+#define MIN_STEP_NORMAL 0.7f    // can't step up onto very steep slopes
 #define MAX_CLIP_PLANES 5
 static void PM_StepSlideMove_(void)
 {
@@ -166,7 +166,7 @@ static void PM_StepSlideMove_(void)
 // modify original_velocity so it parallels all of the clip planes
 //
         for (i = 0; i < numplanes; i++) {
-            PM_ClipVelocity(pml.velocity, planes[i], pml.velocity, 1.01);
+            PM_ClipVelocity(pml.velocity, planes[i], pml.velocity, 1.01f);
             for (j = 0; j < numplanes; j++)
                 if (j != i) {
                     if (DotProduct(pml.velocity, planes[j]) < 0)
@@ -284,7 +284,7 @@ static void PM_Friction(void)
 
     vel = pml.velocity;
 
-    speed = sqrt(vel[0] * vel[0] + vel[1] * vel[1] + vel[2] * vel[2]);
+    speed = VectorLength(vel);
     if (speed < 1) {
         vel[0] = 0;
         vel[1] = 0;
@@ -383,7 +383,7 @@ static void PM_AddCurrents(vec3_t wishvel)
     // account for ladders
     //
 
-    if (pml.ladder && fabs(pml.velocity[2]) <= 200) {
+    if (pml.ladder && fabsf(pml.velocity[2]) <= 200) {
         if ((pm->viewangles[PITCH] <= -15) && (pm->cmd.forwardmove > 0))
             wishvel[2] = 200;
         else if ((pm->viewangles[PITCH] >= 15) && (pm->cmd.forwardmove > 0))
@@ -620,7 +620,7 @@ static void PM_CategorizePosition(void)
         pml.groundsurface = trace.surface;
         pml.groundcontents = trace.contents;
 
-        if (!trace.ent || (trace.plane.normal[2] < 0.7 && !trace.startsolid)) {
+        if (!trace.ent || (trace.plane.normal[2] < 0.7f && !trace.startsolid)) {
             pm->groundentity = NULL;
             pm->s.pm_flags &= ~PMF_ON_GROUND;
         } else {
@@ -971,7 +971,7 @@ static bool PM_GoodPosition(void)
         return true;
 
     for (i = 0; i < 3; i++)
-        origin[i] = end[i] = pm->s.origin[i] * 0.125;
+        origin[i] = end[i] = pm->s.origin[i] * 0.125f;
     trace = pm->trace(origin, pm->mins, pm->maxs, end);
 
     return !trace.allsolid;
@@ -1085,9 +1085,9 @@ static void PM_InitialSnapPosition(void)
             for (x = 0; x < 3; x++) {
                 pm->s.origin[0] = base[0] + offset[x];
                 if (PM_GoodPosition()) {
-                    pml.origin[0] = pm->s.origin[0] * 0.125;
-                    pml.origin[1] = pm->s.origin[1] * 0.125;
-                    pml.origin[2] = pm->s.origin[2] * 0.125;
+                    pml.origin[0] = pm->s.origin[0] * 0.125f;
+                    pml.origin[1] = pm->s.origin[1] * 0.125f;
+                    pml.origin[2] = pm->s.origin[2] * 0.125f;
                     VectorCopy(pm->s.origin, pml.previous_origin);
                     return;
                 }

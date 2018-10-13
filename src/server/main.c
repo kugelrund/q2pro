@@ -589,7 +589,7 @@ static void SVC_GetChallenge(void)
         }
     }
 
-    challenge = (((unsigned)rand() << 16) | rand()) & 0x7fffffff;
+    challenge = Q_rand() & 0x7fffffff;
     if (i == MAX_CHALLENGES) {
         // overwrite the oldest
         svs.challenges[oldest].challenge = challenge;
@@ -1705,12 +1705,7 @@ static void SV_RunGameFrame(void)
         time_before_game = Sys_Milliseconds();
 #endif
 
-    X86_PUSH_FPCW;
-    X86_SINGLE_FPCW;
-
     ge->RunFrame();
-
-    X86_POP_FPCW;
 
 #if USE_CLIENT
     if (host_speeds->integer)

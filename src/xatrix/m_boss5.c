@@ -581,7 +581,7 @@ void BossExplode2 (edict_t *self)
 
 	self->think = BossExplode2;
 	VectorCopy (self->s.origin, org);
-	org[2] += 24 + (rand()&15);
+	org[2] += 24 + (Q_rand()&15);
 	switch (self->count++)
 	{
 	case 0:

@@ -217,7 +217,7 @@ void ThrowClientHead (edict_t *self, int damage)
 	vec3_t	vd;
 	char	*gibname;
 
-	if (rand()&1)
+	if (Q_rand()&1)
 	{
 		gibname = "models/objects/gibs/head2/tris.md2";
 		self->s.skinnum = 1;		// second skin is player
@@ -1303,7 +1303,7 @@ void SP_misc_banner (edict_t *ent)
 	ent->movetype = MOVETYPE_NONE;
 	ent->solid = SOLID_NOT;
 	ent->s.modelindex = gi.modelindex ("models/objects/banner/tris.md2");
-	ent->s.frame = rand() % 16;
+	ent->s.frame = Q_rand() % 16;
 	gi.linkentity (ent);
 
 	ent->think = misc_banner_think;
@@ -1791,9 +1791,12 @@ void func_clock_think (edict_t *self)
 		struct tm	*ltime;
 		time_t		gmtime;
 
-		time(&gmtime);
+		gmtime = time(NULL);
 		ltime = localtime(&gmtime);
-		Q_snprintf (self->message, CLOCK_MESSAGE_SIZE, "%2i:%2i:%2i", ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
+		if (ltime)
+			Q_snprintf(self->message, CLOCK_MESSAGE_SIZE, "%2i:%2i:%2i", ltime->tm_hour, ltime->tm_min, ltime->tm_sec);
+		else
+			strcpy(self->message, "00:00:00");
 		if (self->message[3] == ' ')
 			self->message[3] = '0';
 		if (self->message[6] == ' ')

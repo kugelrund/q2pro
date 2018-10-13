@@ -469,8 +469,9 @@ static void GL_Upload32(byte *data, int width, int height, int baselevel, imaget
         }
 
         // let people sample down the world textures for speed
-        scaled_width >>= gl_picmip->integer;
-        scaled_height >>= gl_picmip->integer;
+        int shift = Cvar_ClampInteger(gl_picmip, 0, 31);
+        scaled_width >>= shift;
+        scaled_height >>= shift;
     }
 
     // don't ever bother with >256 textures
@@ -882,7 +883,7 @@ static void GL_InitParticleTexture(void)
             for (j = 0; j < 16; j++) {
                 x = j - 16 / 2 + 0.5f;
                 y = i - 16 / 2 + 0.5f;
-                f = sqrt(x * x + y * y);
+                f = sqrtf(x * x + y * y);
                 f = 1.0f - f / ((16 - shape) / 2 - 0.5f);
                 f *= 1 << shape;
                 dst[0] = 255;

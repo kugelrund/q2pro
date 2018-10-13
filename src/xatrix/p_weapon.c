@@ -566,7 +566,7 @@ void Weapon_Generic (edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 				{
 					if (ent->client->ps.gunframe == pause_frames[n])
 					{
-						if (rand()&15)
+						if (Q_rand()&15)
 							return;
 					}
 				}
@@ -696,7 +696,7 @@ void Weapon_Grenade (edict_t *ent)
 
 		if ((ent->client->ps.gunframe == 29) || (ent->client->ps.gunframe == 34) || (ent->client->ps.gunframe == 39) || (ent->client->ps.gunframe == 48))
 		{
-			if (rand()&15)
+			if (Q_rand()&15)
 				return;
 		}
 
@@ -1790,7 +1790,7 @@ void Weapon_Trap (edict_t *ent)
 
 		if ((ent->client->ps.gunframe == 29) || (ent->client->ps.gunframe == 34) || (ent->client->ps.gunframe == 39) || (ent->client->ps.gunframe == 48))
 		{
-			if (rand()&15)
+			if (Q_rand()&15)
 				return;
 		}
 

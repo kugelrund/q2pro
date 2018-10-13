@@ -124,7 +124,7 @@ void DoRespawn(edict_t *ent)
         for (count = 0, ent = master; ent; ent = ent->chain, count++)
             ;
 
-        choice = rand() % count;
+        choice = Q_rand_uniform(count);
 
         for (count = 0, ent = master; count < choice; ent = ent->chain, count++)
             ;
@@ -744,12 +744,12 @@ void Touch_Item(edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *surf)
 
     if (taken) {
         // flash the screen
-        other->client->bonus_alpha = 0.25;
+        other->client->bonus_alpha = 0.25f;
 
         // show icon and name on status bar
         other->client->ps.stats[STAT_PICKUP_ICON] = gi.imageindex(ent->item->icon);
         other->client->ps.stats[STAT_PICKUP_STRING] = CS_ITEMS + ITEM_INDEX(ent->item);
-        other->client->pickup_msg_time = level.time + 3.0;
+        other->client->pickup_msg_time = level.time + 3.0f;
 
         // change selected item
         if (ent->item->use)

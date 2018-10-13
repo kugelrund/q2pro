@@ -917,9 +917,9 @@ void widow_attack_kick (edict_t *self)
 //	VectorSet (aim, MELEE_DISTANCE, 0, 4);
 	VectorSet (aim, 100, 0, 4);
 	if (self->enemy->groundentity)
-		fire_hit (self, aim, (50 + (rand() % 6)), 500);
+		fire_hit (self, aim, (50 + (Q_rand() % 6)), 500);
 	else	// not as much kick if they're in the air .. makes it harder to land on her head
-		fire_hit (self, aim, (50 + (rand() % 6)), 250);
+		fire_hit (self, aim, (50 + (Q_rand() % 6)), 250);
 
 }
 
@@ -1497,7 +1497,7 @@ bool Widow_CheckAttack (edict_t *self)
 	if (real_enemy_range <= (MELEE_DISTANCE+20))
 	{
 		// don't always melee in easy mode
-		if (skill->value == 0 && (rand()&3) )
+		if (skill->value == 0 && (Q_rand()&3) )
 			return false;
 		if (self->monsterinfo.melee)
 			self->monsterinfo.attack_state = AS_MELEE;

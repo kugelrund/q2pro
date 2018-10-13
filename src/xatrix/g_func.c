@@ -2061,7 +2061,7 @@ void rotating_light_killed (edict_t *self, edict_t *inflictor, edict_t *attacker
 	gi.WriteByte (30);
 	gi.WritePosition (self->s.origin);
 	gi.WriteDir (vec3_origin);
-	gi.WriteByte (0xe0 + (rand()&7));
+	gi.WriteByte (0xe0 + (Q_rand()&7));
 	gi.multicast (self->s.origin, MULTICAST_PVS);
 
 	self->s.effects &= ~EF_SPINNINGLIGHTS;
@@ -2163,7 +2163,7 @@ void object_repair_fx (edict_t *ent)
 		gi.WriteByte (10);
 		gi.WritePosition (ent->s.origin);
 		gi.WriteDir (vec3_origin);
-		gi.WriteByte (0xe0 + (rand()&7));
+		gi.WriteByte (0xe0 + (Q_rand()&7));
 		gi.multicast (ent->s.origin, MULTICAST_PVS);
 	}
 	
@@ -2194,7 +2194,7 @@ void object_repair_sparks (edict_t *ent)
 	gi.WriteByte (10);
 	gi.WritePosition (ent->s.origin);
 	gi.WriteDir (vec3_origin);
-	gi.WriteByte (0xe0 + (rand()&7));
+	gi.WriteByte (0xe0 + (Q_rand()&7));
 	gi.multicast (ent->s.origin, MULTICAST_PVS);
 	
 }

@@ -78,7 +78,7 @@ static areanode_t *SV_CreateAreaNode(int depth, vec3_t mins, vec3_t maxs)
     else
         anode->axis = 1;
 
-    anode->dist = 0.5 * (maxs[anode->axis] + mins[anode->axis]);
+    anode->dist = 0.5f * (maxs[anode->axis] + mins[anode->axis]);
     VectorCopy(mins, mins1);
     VectorCopy(mins, mins2);
     VectorCopy(maxs, maxs1);
@@ -170,7 +170,6 @@ void SV_LinkEdict(cm_t *cm, edict_t *ent)
         (ent->s.angles[0] || ent->s.angles[1] || ent->s.angles[2])) {
         // expand for rotation
         float   max, v;
-        int     i;
 
         max = 0;
         for (i = 0; i < 3; i++) {

@@ -722,7 +722,7 @@ bool monster_start (edict_t *self)
 
 	// randomize what frame they start on
 	if (self->monsterinfo.currentmove)
-		self->s.frame = self->monsterinfo.currentmove->firstframe + (rand() % (self->monsterinfo.currentmove->lastframe - self->monsterinfo.currentmove->firstframe + 1));
+		self->s.frame = self->monsterinfo.currentmove->firstframe + (Q_rand() % (self->monsterinfo.currentmove->lastframe - self->monsterinfo.currentmove->firstframe + 1));
 
 	// PMM - get this so I don't have to do it in all of the monsters
 	self->monsterinfo.base_height = self->maxs[2];

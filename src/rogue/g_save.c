@@ -159,6 +159,8 @@ void InitGame(void)
 {
 	gi.dprintf("==== InitGame ====\n");
 
+	Q_srand(time(NULL));
+
 	gun_x = gi.cvar("gun_x", "0", 0);
 	gun_y = gi.cvar("gun_y", "0", 0);
 	gun_z = gi.cvar("gun_z", "0", 0);
@@ -516,7 +518,8 @@ void WriteGame (char *filename, qboolean autosave)
 	for (i=0 ; i<game.maxclients ; i++)
 		WriteClient (f, &game.clients[i]);
 
-	fclose (f);
+	if (fclose(f))
+		gi.error("Couldn't write %s", filename);
 }
 
 void ReadGame (char *filename)
@@ -694,7 +697,8 @@ void WriteLevel (char *filename)
 	i = -1;
 	fwrite (&i, sizeof(i), 1, f);
 
-	fclose (f);
+	if (fclose(f))
+		gi.error("Couldn't write %s", filename);
 }
 
 

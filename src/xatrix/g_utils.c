@@ -124,7 +124,7 @@ edict_t *G_PickTarget (char *targetname)
 		return NULL;
 	}
 
-	return choice[rand() % num_choices];
+	return choice[Q_rand_uniform(num_choices)];
 }
 
 

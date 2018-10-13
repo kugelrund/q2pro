@@ -78,13 +78,13 @@ void AngleVectors(vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
     float        angle;
     float        sr, sp, sy, cr, cp, cy;
 
-    angle = angles[YAW] * (M_PI * 2 / 360);
+    angle = DEG2RAD(angles[YAW]);
     sy = sin(angle);
     cy = cos(angle);
-    angle = angles[PITCH] * (M_PI * 2 / 360);
+    angle = DEG2RAD(angles[PITCH]);
     sp = sin(angle);
     cp = cos(angle);
-    angle = angles[ROLL] * (M_PI * 2 / 360);
+    angle = DEG2RAD(angles[ROLL]);
     sr = sin(angle);
     cr = cos(angle);
 
@@ -109,8 +109,7 @@ vec_t VectorNormalize(vec3_t v)
 {
     float    length, ilength;
 
-    length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-    length = sqrt(length);         // FIXME
+    length = VectorLength(v);
 
     if (length) {
         ilength = 1 / length;
@@ -127,8 +126,7 @@ vec_t VectorNormalize2(vec3_t v, vec3_t out)
 {
     float    length, ilength;
 
-    length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-    length = sqrt(length);         // FIXME
+    length = VectorLength(v);
 
     if (length) {
         ilength = 1 / length;
@@ -794,14 +792,12 @@ and returns 0.
 */
 size_t Q_vscnprintf(char *dest, size_t size, const char *fmt, va_list argptr)
 {
-    size_t ret;
+    if (size) {
+        size_t ret = Q_vsnprintf(dest, size, fmt, argptr);
+        return min(ret, size - 1);
+    }
 
-    if (!size)
-        return 0;
-
-    ret = Q_vsnprintf(dest, size, fmt, argptr);
-
-    return min(ret, size - 1);
+    return 0;
 }
 
 /*
@@ -894,6 +890,96 @@ void Q_setenv(const char *name, const char *value)
         unsetenv(name);
     }
 #endif // !_WIN32
+}
+
+/*
+=====================================================================
+
+  MT19337 PRNG
+
+=====================================================================
+*/
+
+#define N 624
+#define M 397
+
+static uint32_t mt_state[N];
+static uint32_t mt_index;
+
+/*
+==================
+Q_srand
+
+Seed PRNG with initial value
+==================
+*/
+void Q_srand(uint32_t seed)
+{
+    mt_index = N;
+    mt_state[0] = seed;
+    for (int i = 1; i < N; i++)
+        mt_state[i] = seed = 1812433253U * (seed ^ seed >> 30) + i;
+}
+
+/*
+==================
+Q_rand
+
+Generate random integer in range [0, 2^32)
+==================
+*/
+uint32_t Q_rand(void)
+{
+    uint32_t x, y;
+    int i;
+
+    if (mt_index >= N) {
+        mt_index = 0;
+
+#define STEP(j, k) do {                         \
+        x  = mt_state[i] &  (1U << 31);         \
+        x += mt_state[j] & ((1U << 31) - 1);    \
+        y  = x >> 1;                            \
+        y ^= 0x9908B0DF & -(x & 1);             \
+        mt_state[i] = mt_state[k] ^ y;          \
+    } while (0)
+
+        for (i = 0; i < N - M; i++)
+            STEP(i + 1, i + M);
+        for (     ; i < N - 1; i++)
+            STEP(i + 1, i - N + M);
+        STEP(0, M - 1);
+    }
+
+    y = mt_state[mt_index++];
+    y ^= y >> 11;
+    y ^= y <<  7 & 0x9D2C5680;
+    y ^= y << 15 & 0xEFC60000;
+    y ^= y >> 18;
+
+    return y;
+}
+
+/*
+==================
+Q_rand_uniform
+
+Generate random integer in range [0, n) avoiding modulo bias
+==================
+*/
+uint32_t Q_rand_uniform(uint32_t n)
+{
+    uint32_t r, m;
+
+    if (n < 2)
+        return 0;
+
+    m = -n % n; // 2^32 mod n
+    do {
+        r = Q_rand();
+    } while (r < m);
+
+    return r % n;
 }
 
 /*

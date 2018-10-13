@@ -451,7 +451,7 @@ void SV_NewChaseDir (edict_t *actor, edict_t *enemy, float dist)
 	}
 
 // try other directions
-	if (((rand() & 3) & 1) || fabs(deltay) > fabs(deltax))
+	if (((Q_rand() & 3) & 1) || fabs(deltay) > fabs(deltax))
 	{
 		tdir=d[1];
 		d[1]=d[2];
@@ -471,7 +471,7 @@ void SV_NewChaseDir (edict_t *actor, edict_t *enemy, float dist)
 	if (olddir!=DI_NODIR && SV_StepDirection(actor, olddir, dist))
 			return;
 
-	if (rand()&1) 	/*randomly determine direction of search*/
+	if (Q_rand()&1) 	/*randomly determine direction of search*/
 	{
 		for (tdir=0 ; tdir<=315 ; tdir += 45)
 			if (tdir!=turnaround && SV_StepDirection(actor, tdir, dist) )
@@ -536,7 +536,7 @@ void M_MoveToGoal (edict_t *ent, float dist)
 		return;
 
 // bump around...
-	if ( (rand()&3)==1 || !SV_StepDirection (ent, ent->ideal_yaw, dist))
+	if ( (Q_rand()&3)==1 || !SV_StepDirection (ent, ent->ideal_yaw, dist))
 	{
 		if (ent->inuse)
 			SV_NewChaseDir (ent, goal, dist);

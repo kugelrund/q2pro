@@ -41,7 +41,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "common/protocol.h"
 #include "common/tests.h"
 #include "common/utils.h"
-#include "common/x86/fpu.h"
 #include "common/zone.h"
 
 #include "client/client.h"
@@ -521,8 +520,6 @@ void Com_Error(error_type_t code, const char *fmt, ...)
     // reset Com_Printf recursion level
     com_printEntered = 0;
 
-    X86_POP_FPCW;
-
     if (code == ERR_DISCONNECT || code == ERR_RECONNECT) {
         Com_WPrintf("%s\n", com_errorMsg);
         SV_Shutdown(va("Server was killed: %s\n", com_errorMsg), code);
@@ -657,7 +654,7 @@ size_t Com_UptimeLong_m(char *buffer, size_t size)
 
 static size_t Com_Random_m(char *buffer, size_t size)
 {
-    return Q_scnprintf(buffer, size, "%d", rand_byte() % 10);
+    return Q_scnprintf(buffer, size, "%d", Q_rand() % 10);
 }
 
 static size_t Com_MapList_m(char *buffer, size_t size)
@@ -886,9 +883,7 @@ void Qcommon_Init(int argc, char **argv)
 
     Com_SetLastError(NULL);
 
-    X86_SetFPCW();
-
-    srand(time(NULL));
+    Q_srand(time(NULL));
 
     // prepare enough of the subsystems to handle
     // cvar and command buffer management
