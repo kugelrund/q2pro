@@ -1682,6 +1682,7 @@ static inline bool check_paused(void)
 
 resume:
     if (sv_paused->integer) {
+        SpeedrunUnpauseTimer();
         Cvar_Set("sv_paused", "0");
         IN_Activate();
     }
@@ -1705,7 +1706,7 @@ static void SV_RunGameFrame(void)
         time_before_game = Sys_Milliseconds();
 #endif
 
-    ge->RunFrame();
+    ge->RunFrame(true);
 
 #if USE_CLIENT
     if (host_speeds->integer)

@@ -142,6 +142,8 @@ void SV_SpawnServer(mapcmd_t *cmd)
     client_t    *client;
     char        *entitystring;
 
+    SpeedrunUnpauseTimer();
+
     SCR_BeginLoadingPlaque();           // for local system
 
     Com_Printf("------- Server Initialization -------\n");
@@ -224,8 +226,8 @@ void SV_SpawnServer(mapcmd_t *cmd)
     ge->SpawnEntities(sv.name, entitystring, cmd->spawnpoint);
 
     // run two frames to allow everything to settle
-    ge->RunFrame(); sv.framenum++;
-    ge->RunFrame(); sv.framenum++;
+    ge->RunFrame(false); sv.framenum++;
+    ge->RunFrame(false); sv.framenum++;
 
     // make sure maxclients string is correct
     sprintf(sv.configstrings[CS_MAXCLIENTS], "%d", sv_maxclients->integer);
