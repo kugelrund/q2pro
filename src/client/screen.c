@@ -19,6 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "client.h"
 #include "speedrun/timer.h"
+#include "../speedrun/strafe_helper/strafe_helper.h"
 
 #define STAT_PICS       11
 #define STAT_MINUS      (STAT_PICS - 1)  // num frame for '-' stats digit
@@ -1932,6 +1933,18 @@ static void SCR_DrawTimeString(
     }
 }
 
+static void SCR_DrawStrafeHelper(void)
+{
+    const struct StrafeHelperParams params = {
+        .center = cl_strafeHelperCenter->integer,
+        .center_marker = cl_strafeHelperCenterMarker->integer,
+        .scale = cl_strafeHelperScale->value,
+        .height = cl_strafeHelperHeight->value,
+        .y = cl_strafeHelperY->value,
+    };
+    StrafeHelper_Draw(&params, scr.hud_width, scr.hud_height);
+}
+
 static int SCR_DrawSpeedrunTimer(int x, int y)
 {
     const int TIMER_HEIGHT = 25;
@@ -1966,6 +1979,10 @@ static void SCR_Draw2D(void)
 
     scr.hud_height *= scr.hud_scale;
     scr.hud_width *= scr.hud_scale;
+
+    if (cl_drawStrafeHelper->integer) {
+        SCR_DrawStrafeHelper();
+    }
 
     const int MARGIN = 5;
     SCR_DrawSpeedrunTimer(scr.hud_width - MARGIN, MARGIN);

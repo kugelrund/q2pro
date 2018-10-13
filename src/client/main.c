@@ -72,6 +72,12 @@ cvar_t  *cl_vwep;
 // Additions for q2pro-speed
 cvar_t  *cl_drawSpeedrunTotalTimer;
 cvar_t  *cl_drawSpeedrunLevelTimer;
+cvar_t  *cl_drawStrafeHelper;
+cvar_t  *cl_strafeHelperCenter;
+cvar_t  *cl_strafeHelperCenterMarker;
+cvar_t  *cl_strafeHelperHeight;
+cvar_t  *cl_strafeHelperScale;
+cvar_t  *cl_strafeHelperY;
 
 //
 // userinfo
@@ -2700,6 +2706,12 @@ static void CL_InitLocal(void)
     // Additions for q2pro-speed
     cl_drawSpeedrunTotalTimer = Cvar_Get("cl_drawtotaltimer", "0", CVAR_ARCHIVE);
     cl_drawSpeedrunLevelTimer = Cvar_Get("cl_drawleveltimer", "0", CVAR_ARCHIVE);
+    cl_drawStrafeHelper = Cvar_Get("cl_drawstrafehelper", "0", CVAR_ARCHIVE);
+    cl_strafeHelperCenter = Cvar_Get("cl_strafehelpercenter", "1", CVAR_ARCHIVE);
+    cl_strafeHelperCenterMarker = Cvar_Get("cl_strafehelpercentermarker", "1", CVAR_ARCHIVE);
+    cl_strafeHelperHeight = Cvar_Get("cl_strafehelperheight", "25", CVAR_ARCHIVE);
+    cl_strafeHelperScale = Cvar_Get("cl_strafehelperscale", "1.5", CVAR_ARCHIVE);
+    cl_strafeHelperY = Cvar_Get("cl_strafehelpery", "100", CVAR_ARCHIVE);
 
     // hack for timedemo
     com_timedemo->changed = cl_sync_changed;

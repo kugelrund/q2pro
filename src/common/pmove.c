@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "shared/shared.h"
 #include "common/pmove.h"
+#include "../speedrun/strafe_helper/strafe_helper.h"
 
 #define STEPSIZE    18
 
@@ -327,6 +328,15 @@ static void PM_Accelerate(vec3_t wishdir, float wishspeed, float accel)
 {
     int         i;
     float       addspeed, accelspeed, currentspeed;
+
+#if USE_CLIENT
+    StrafeHelper_SetAccelerationValues(pml.forward,
+                                       pml.velocity,
+                                       wishdir,
+                                       wishspeed,
+                                       accel,
+                                       pml.frametime);
+#endif
 
     currentspeed = DotProduct(pml.velocity, wishdir);
     addspeed = wishspeed - currentspeed;
