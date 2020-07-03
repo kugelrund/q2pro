@@ -107,6 +107,8 @@ cvar_t  *allow_download_others;
 
 cvar_t  *rcon_password;
 
+cvar_t  *speedrun_segmented_map;
+
 const char  com_version_string[] =
     APPLICATION " " VERSION " " __DATE__ " " BUILDSTRING " " CPUSTRING;
 
@@ -944,6 +946,8 @@ void Qcommon_Init(int argc, char **argv)
     allow_download_others = Cvar_Get("allow_download_others", "0", 0);
 
     rcon_password = Cvar_Get("rcon_password", "", CVAR_PRIVATE);
+
+    speedrun_segmented_map = Cvar_Get("speedrun_segmented_map", "", 0);
 
     Cmd_AddCommand("z_stats", Z_Stats_f);
 

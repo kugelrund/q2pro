@@ -143,6 +143,9 @@ void BeginIntermission (edict_t *targ)
 			continue;
 		MoveClientToIntermission (client);
 	}
+	// actual intermission so lets do the segmented save now. That way we make
+	// sure that the change level trigger is still active in the save
+	gi.SpeedrunSegmentedSave();
 }
 
 

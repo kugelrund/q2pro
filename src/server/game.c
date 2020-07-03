@@ -926,6 +926,7 @@ void SV_InitGameProgs(void)
     import.SpeedrunLevelFinished = SpeedrunLevelFinished;
     import.SpeedrunGetTotalTimeString = SpeedrunGetTotalTimeString;
     import.SpeedrunGetLevelTimeString = SpeedrunGetLevelTimeString;
+    import.SpeedrunSegmentedSave = SpeedrunSegmentedSave;
 
     ge = entry(&import);
     if (!ge) {

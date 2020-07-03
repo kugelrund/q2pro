@@ -281,6 +281,12 @@ static void set_active_state(void)
     CL_UpdateFrameTimes();
 
     if (!cls.demo.playback) {
+        if (strcmp(cl.mapname, speedrun_segmented_map->string) == 0) {
+            char record_command[256];
+            Q_snprintf(record_command, sizeof(record_command),
+                       "record segmented_%s", speedrun_segmented_map->string);
+            Cmd_ExecuteString(NULL, record_command);
+        }
         EXEC_TRIGGER(cl_beginmapcmd);
         Cmd_ExecTrigger("#cl_enterlevel");
     }

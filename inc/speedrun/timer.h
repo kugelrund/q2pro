@@ -15,3 +15,4 @@ void SpeedrunGetTotalTimeString(int accuracy,
                                 char time_string[static SPEEDRUN_TIME_LENGTH]);
 void SpeedrunGetLevelTimeString(int accuracy,
                                 char time_string[static SPEEDRUN_TIME_LENGTH]);
+void SpeedrunSegmentedSave();

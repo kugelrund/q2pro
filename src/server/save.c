@@ -684,6 +684,74 @@ static void SV_Savegame_f(void)
     Com_Printf("Game saved.\n");
 }
 
+void SV_SavegameSpeedrunSegmented(void)
+{
+    if (sv.state != ss_game) {
+        Com_Printf("You must be in a game to save.\n");
+        return;
+    }
+
+    if (dedicated->integer) {
+        Com_Printf("Savegames are for listen servers only.\n");
+        return;
+    }
+
+    // don't bother saving if we can't read them back!
+    if (!(g_features->integer & GMF_ENHANCED_SAVEGAMES)) {
+        Com_Printf("Game does not support enhanced savegames.\n");
+        return;
+    }
+
+    if (Cvar_VariableInteger("deathmatch")) {
+        Com_Printf("Can't savegame in a deathmatch.\n");
+        return;
+    }
+
+    if (sv_maxclients->integer == 1 && svs.client_pool[0].edict->client->ps.stats[STAT_HEALTH] <= 0) {
+        Com_Printf("Can't savegame while dead!\n");
+        return;
+    }
+
+    if (strcmp(sv.name, speedrun_segmented_map->string) != 0) {
+        return;
+    }
+
+    char dir[256];
+    Q_snprintf(dir, sizeof(dir), "segmented_%s", sv.name);
+    if (!COM_IsPath(dir)) {
+        Com_Printf("Bad savedir.\n");
+        return;
+    }
+
+    // archive current level, including all client edicts.
+    // when the level is reloaded, they will be shells awaiting
+    // a connecting client
+    if (write_level_file()) {
+        Com_Printf("Couldn't write level file.\n");
+        return;
+    }
+
+    // save server state
+    if (write_server_file(false)) {
+        Com_Printf("Couldn't write server file.\n");
+        return;
+    }
+
+    // clear whatever savegames are there
+    if (wipe_save_dir(dir)) {
+        Com_Printf("Couldn't wipe '%s' directory.\n", dir);
+        return;
+    }
+
+    // copy it off
+    if (copy_save_dir(SAVE_CURRENT, dir)) {
+        Com_Printf("Couldn't write '%s' directory.\n", dir);
+        return;
+    }
+
+    Com_Printf("Game saved.\n");
+}
+
 static const cmdreg_t c_savegames[] = {
     { "save", SV_Savegame_f, SV_Savegame_c },
     { "load", SV_Loadgame_f, SV_Savegame_c },

@@ -344,6 +344,16 @@ static void SV_GameMap_f(void)
         return;
     }
 
+    const char* nextmap = Cmd_Argv(1);
+    if (!strstr(nextmap, "*")) {
+        // no unit end, so segmented save has not been done at intermission
+        // start in client code (as that breaks stats somehow). Therefore do the
+        // save now.
+        SpeedrunSegmentedSave();
+    }
+    // make sure level timer is indeed reset to zero for loaded intermissions
+    SpeedrunLevelFinished();
+
 #if !USE_CLIENT
     // admin option to reload the game DLL or entire server
     if (sv_recycle->integer > 0) {

@@ -168,6 +168,8 @@ extern cvar_t   *allow_download_others;
 
 extern cvar_t   *rcon_password;
 
+extern cvar_t   *speedrun_segmented_map;
+
 #if USE_CLIENT
 // host_speeds times
 extern unsigned     time_before_game;

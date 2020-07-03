@@ -94,3 +94,15 @@ void SpeedrunTimerAddMilliseconds(int milliseconds)
 	stored_level_time += milliseconds;
 	last_timestamp = Sys_Milliseconds();
 }
+
+
+#if USE_CLIENT
+void SV_SavegameSpeedrunSegmented(void);
+#else
+#define SV_SavegameSpeedrunSegmented()    (void)0;
+#endif
+
+void SpeedrunSegmentedSave()
+{
+	SV_SavegameSpeedrunSegmented();
+}
