@@ -2232,7 +2232,7 @@ static size_t CL_Ups_m(char *buffer, size_t size)
     } else {
         VectorScale(cl.frame.ps.pmove.velocity, 0.125f, vel);
     }
-
+    vel[2] = 0.0f;  // don't care about vertical speed in speedometer
     return Q_scnprintf(buffer, size, "%.f", VectorLength(vel));
 }
 
