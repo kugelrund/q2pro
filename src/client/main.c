@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // cl_main.c  -- client main loop
 
 #include "client.h"
+#include "speedrun/timer.h"
 
 cvar_t  *rcon_address;
 
@@ -68,6 +69,16 @@ cvar_t  *cl_protocol;
 cvar_t  *gender_auto;
 
 cvar_t  *cl_vwep;
+
+// Additions for q2pro-speed
+cvar_t  *cl_drawSpeedrunTotalTimer;
+cvar_t  *cl_drawSpeedrunLevelTimer;
+cvar_t  *cl_drawStrafeHelper;
+cvar_t  *cl_strafeHelperCenter;
+cvar_t  *cl_strafeHelperCenterMarker;
+cvar_t  *cl_strafeHelperHeight;
+cvar_t  *cl_strafeHelperScale;
+cvar_t  *cl_strafeHelperY;
 
 //
 // userinfo
@@ -2205,7 +2216,7 @@ static size_t CL_Ups_m(char *buffer, size_t size)
     } else {
         VectorScale(cl.frame.ps.pmove.velocity, 0.125f, vel);
     }
-
+    vel[2] = 0.0f;  // don't care about vertical speed in speedometer
     return Q_scnprintf(buffer, size, "%.f", VectorLength(vel));
 }
 
@@ -2716,6 +2727,16 @@ static void CL_InitLocal(void)
     cl_rollhack = Cvar_Get("cl_rollhack", "1", 0);
     cl_noglow = Cvar_Get("cl_noglow", "0", 0);
     cl_nolerp = Cvar_Get("cl_nolerp", "0", 0);
+
+    // Additions for q2pro-speed
+    cl_drawSpeedrunTotalTimer = Cvar_Get("cl_drawtotaltimer", "0", CVAR_ARCHIVE);
+    cl_drawSpeedrunLevelTimer = Cvar_Get("cl_drawleveltimer", "0", CVAR_ARCHIVE);
+    cl_drawStrafeHelper = Cvar_Get("cl_drawstrafehelper", "0", CVAR_ARCHIVE);
+    cl_strafeHelperCenter = Cvar_Get("cl_strafehelpercenter", "1", CVAR_ARCHIVE);
+    cl_strafeHelperCenterMarker = Cvar_Get("cl_strafehelpercentermarker", "1", CVAR_ARCHIVE);
+    cl_strafeHelperHeight = Cvar_Get("cl_strafehelperheight", "25", CVAR_ARCHIVE);
+    cl_strafeHelperScale = Cvar_Get("cl_strafehelperscale", "1.5", CVAR_ARCHIVE);
+    cl_strafeHelperY = Cvar_Get("cl_strafehelpery", "100", CVAR_ARCHIVE);
 
     // hack for timedemo
     com_timedemo->changed = cl_sync_changed;

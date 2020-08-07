@@ -46,6 +46,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "client/client.h"
 #include "client/keys.h"
 #include "server/server.h"
+#include "speedrun/timer.h"
 #include "system/system.h"
 
 #include <setjmp.h>
@@ -1050,6 +1051,8 @@ void Qcommon_Frame(void)
     unsigned oldtime, msec;
     static unsigned remaining;
     static float frac;
+
+    SpeedrunUpdateTimer();
 
     if (setjmp(com_abortframe)) {
         return;            // an ERR_DROP was thrown

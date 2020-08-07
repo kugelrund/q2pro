@@ -16,6 +16,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 #include "g_local.h"
+#include "g_speedrun.h"
 
 
 
@@ -74,6 +75,10 @@ void BeginIntermission(edict_t *targ)
 
     if (level.intermission_framenum)
         return;     // already activated
+
+    gi.SpeedrunLevelFinished();
+    gi.SpeedrunPauseTimer();
+    PrintSpeedrunTimer();
 
     game.autosaved = false;
 

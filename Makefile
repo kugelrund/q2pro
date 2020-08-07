@@ -40,14 +40,20 @@ LIBS ?=
 CFLAGS_s := -iquote./inc
 CFLAGS_c := -iquote./inc
 CFLAGS_g := -iquote./inc
+CFLAGS_r := -iquote./inc
+CFLAGS_x := -iquote./inc
 
 RCFLAGS_s :=
 RCFLAGS_c :=
 RCFLAGS_g :=
+RCFLAGS_r :=
+RCFLAGS_x :=
 
 LDFLAGS_s :=
 LDFLAGS_c :=
 LDFLAGS_g := -shared
+LDFLAGS_r := -shared
+LDFLAGS_x := -shared
 
 ifdef CONFIG_WINDOWS
     # Force i?86-netware calling convention on x86 Windows
@@ -61,11 +67,15 @@ ifdef CONFIG_WINDOWS
     LDFLAGS_s += -mconsole
     LDFLAGS_c += -mwindows
     LDFLAGS_g += -mconsole
+    LDFLAGS_r += -mconsole
+    LDFLAGS_x += -mconsole
 
     # Mark images as DEP and ASLR compatible
     LDFLAGS_s += -Wl,--nxcompat,--dynamicbase
     LDFLAGS_c += -Wl,--nxcompat,--dynamicbase
     LDFLAGS_g += -Wl,--nxcompat,--dynamicbase
+    LDFLAGS_r += -Wl,--nxcompat,--dynamicbase
+    LDFLAGS_x += -Wl,--nxcompat,--dynamicbase
 
     # Force relocations to be generated for 32-bit .exe files and work around
     # binutils bug that causes invalid image entry point to be set when
@@ -90,15 +100,21 @@ else
     CFLAGS_s += -fvisibility=hidden
     CFLAGS_c += -fvisibility=hidden
     CFLAGS_g += -fvisibility=hidden
+    CFLAGS_r += -fvisibility=hidden
+    CFLAGS_x += -fvisibility=hidden
 
     # Resolve all symbols at link time
     ifeq ($(SYS),Linux)
         LDFLAGS_s += -Wl,--no-undefined
         LDFLAGS_c += -Wl,--no-undefined
         LDFLAGS_g += -Wl,--no-undefined
+        LDFLAGS_r += -Wl,--no-undefined
+        LDFLAGS_x += -Wl,--no-undefined
     endif
 
     CFLAGS_g += -fPIC
+    CFLAGS_r += -fPIC
+    CFLAGS_x += -fPIC
 endif
 
 ifndef CONFIG_X86_NO_SSE_MATH
@@ -130,11 +146,16 @@ endif
 
 CFLAGS_s += $(BUILD_DEFS) $(VER_DEFS) $(PATH_DEFS) -DUSE_SERVER=1
 CFLAGS_c += $(BUILD_DEFS) $(VER_DEFS) $(PATH_DEFS) -DUSE_SERVER=1 -DUSE_CLIENT=1
+CFLAGS_g += -DTHISGAME=GAME_BASEQ2
+CFLAGS_r += -DTHISGAME=GAME_ROGUE
+CFLAGS_x += -DTHISGAME=GAME_XATRIX
 
 # windres needs special quoting...
 RCFLAGS_s += -DREVISION=$(REV) -DVERSION='\"$(VER)\"'
 RCFLAGS_c += -DREVISION=$(REV) -DVERSION='\"$(VER)\"'
 RCFLAGS_g += -DREVISION=$(REV) -DVERSION='\"$(VER)\"'
+RCFLAGS_r += -DREVISION=$(REV) -DVERSION='\"$(VER)\"'
+RCFLAGS_x += -DREVISION=$(REV) -DVERSION='\"$(VER)\"'
 
 
 ### Object Files ###
@@ -194,6 +215,9 @@ OBJS_c := \
     src/server/main.o       \
     src/server/user.o       \
     src/server/world.o      \
+    src/speedrun/timer.o    \
+    src/speedrun/timer_helper.o \
+    src/speedrun/strafe_helper/strafe_helper.o
 
 OBJS_s := \
     $(COMMON_OBJS)  \
@@ -205,7 +229,9 @@ OBJS_s := \
     src/server/send.o       \
     src/server/main.o       \
     src/server/user.o       \
-    src/server/world.o
+    src/server/world.o      \
+    src/speedrun/timer.o    \
+    src/speedrun/timer_helper.o
 
 OBJS_g := \
     src/shared/shared.o         \
@@ -223,6 +249,7 @@ OBJS_g := \
     src/baseq2/g_ptrs.o         \
     src/baseq2/g_save.o         \
     src/baseq2/g_spawn.o        \
+    src/baseq2/g_speedrun.o     \
     src/baseq2/g_svcmds.o       \
     src/baseq2/g_target.o       \
     src/baseq2/g_trigger.o      \
@@ -258,6 +285,125 @@ OBJS_g := \
     src/baseq2/p_view.o         \
     src/baseq2/p_weapon.o
 
+OBJS_r := \
+    src/shared/shared.o         \
+    src/shared/m_flash.o        \
+    src/rogue/dm_ball.o         \
+    src/rogue/dm_tag.o          \
+    src/rogue/g_ai.o            \
+    src/rogue/g_chase.o         \
+    src/rogue/g_cmds.o          \
+    src/rogue/g_combat.o        \
+    src/rogue/g_func.o          \
+    src/rogue/g_items.o         \
+    src/rogue/g_main.o          \
+    src/rogue/g_misc.o          \
+    src/rogue/g_monster.o       \
+    src/rogue/g_newai.o         \
+    src/rogue/g_newdm.o         \
+    src/rogue/g_newfnc.o        \
+    src/rogue/g_newtarg.o       \
+    src/rogue/g_newtrig.o       \
+    src/rogue/g_newweap.o       \
+    src/rogue/g_phys.o          \
+    src/rogue/g_save.o          \
+    src/rogue/g_spawn.o         \
+    src/rogue/g_speedrun.o      \
+    src/rogue/g_sphere.o        \
+    src/rogue/g_svcmds.o        \
+    src/rogue/g_target.o        \
+    src/rogue/g_trigger.o       \
+    src/rogue/g_turret.o        \
+    src/rogue/g_utils.o         \
+    src/rogue/g_weapon.o        \
+    src/rogue/m_actor.o         \
+    src/rogue/m_berserk.o       \
+    src/rogue/m_boss2.o         \
+    src/rogue/m_boss31.o        \
+    src/rogue/m_boss32.o        \
+    src/rogue/m_boss3.o         \
+    src/rogue/m_brain.o         \
+    src/rogue/m_carrier.o       \
+    src/rogue/m_chick.o         \
+    src/rogue/m_flipper.o       \
+    src/rogue/m_float.o         \
+    src/rogue/m_flyer.o         \
+    src/rogue/m_gladiator.o     \
+    src/rogue/m_gunner.o        \
+    src/rogue/m_hover.o         \
+    src/rogue/m_infantry.o      \
+    src/rogue/m_insane.o        \
+    src/rogue/m_medic.o         \
+    src/rogue/m_move.o          \
+    src/rogue/m_mutant.o        \
+    src/rogue/m_parasite.o      \
+    src/rogue/m_soldier.o       \
+    src/rogue/m_stalker.o       \
+    src/rogue/m_supertank.o     \
+    src/rogue/m_tank.o          \
+    src/rogue/m_turret.o        \
+    src/rogue/m_widow.o         \
+    src/rogue/m_widow2.o        \
+    src/rogue/p_client.o        \
+    src/rogue/p_hud.o           \
+    src/rogue/p_trail.o         \
+    src/rogue/p_view.o          \
+    src/rogue/p_weapon.o
+
+OBJS_x := \
+    src/shared/shared.o         \
+    src/shared/m_flash.o        \
+    src/xatrix/g_ai.o           \
+    src/xatrix/g_chase.o        \
+    src/xatrix/g_cmds.o         \
+    src/xatrix/g_combat.o       \
+    src/xatrix/g_func.o         \
+    src/xatrix/g_items.o        \
+    src/xatrix/g_main.o         \
+    src/xatrix/g_misc.o         \
+    src/xatrix/g_monster.o      \
+    src/xatrix/g_phys.o         \
+    src/xatrix/g_save.o         \
+    src/xatrix/g_spawn.o        \
+    src/xatrix/g_speedrun.o     \
+    src/xatrix/g_svcmds.o       \
+    src/xatrix/g_target.o       \
+    src/xatrix/g_trigger.o      \
+    src/xatrix/g_turret.o       \
+    src/xatrix/g_utils.o        \
+    src/xatrix/g_weapon.o       \
+    src/xatrix/m_actor.o        \
+    src/xatrix/m_berserk.o      \
+    src/xatrix/m_boss2.o        \
+    src/xatrix/m_boss31.o       \
+    src/xatrix/m_boss32.o       \
+    src/xatrix/m_boss3.o        \
+    src/xatrix/m_boss5.o        \
+    src/xatrix/m_brain.o        \
+    src/xatrix/m_chick.o        \
+    src/xatrix/m_fixbot.o       \
+    src/xatrix/m_flipper.o      \
+    src/xatrix/m_float.o        \
+    src/xatrix/m_flyer.o        \
+    src/xatrix/m_gekk.o         \
+    src/xatrix/m_gladb.o        \
+    src/xatrix/m_gladiator.o    \
+    src/xatrix/m_gunner.o       \
+    src/xatrix/m_hover.o        \
+    src/xatrix/m_infantry.o     \
+    src/xatrix/m_insane.o       \
+    src/xatrix/m_medic.o        \
+    src/xatrix/m_move.o         \
+    src/xatrix/m_mutant.o       \
+    src/xatrix/m_parasite.o     \
+    src/xatrix/m_soldier.o      \
+    src/xatrix/m_supertank.o    \
+    src/xatrix/m_tank.o         \
+    src/xatrix/p_client.o       \
+    src/xatrix/p_hud.o          \
+    src/xatrix/p_trail.o        \
+    src/xatrix/p_view.o         \
+    src/xatrix/p_weapon.o
 
 ### Configuration Options ###
 
@@ -411,6 +557,8 @@ ifdef CONFIG_X86_GAME_ABI_HACK
     CFLAGS_c += -DUSE_GAME_ABI_HACK=1
     CFLAGS_s += -DUSE_GAME_ABI_HACK=1
     CFLAGS_g += -DUSE_GAME_ABI_HACK=1
+    CFLAGS_r += -DUSE_GAME_ABI_HACK=1
+    CFLAGS_x += -DUSE_GAME_ABI_HACK=1
 endif
 
 ifdef CONFIG_VARIABLE_SERVER_FPS
@@ -455,6 +603,8 @@ ifdef CONFIG_WINDOWS
     OBJS_c += src/windows/res/q2pro.o
     OBJS_s += src/windows/res/q2proded.o
     OBJS_g += src/windows/res/baseq2.o
+    OBJS_r += src/windows/res/rogue.o
+    OBJS_x += src/windows/res/xatrix.o
 
     # System libs
     LIBS_s += -lws2_32 -lwinmm -ladvapi32
@@ -486,6 +636,8 @@ else
     LIBS_s += -lm
     LIBS_c += -lm
     LIBS_g += -lm
+    LIBS_r += -lm
+    LIBS_x += -lm
 
     ifeq ($(SYS),Linux)
         LIBS_s += -ldl -lrt
@@ -508,16 +660,20 @@ endif
 ### Targets ###
 
 ifdef CONFIG_WINDOWS
-    TARG_s := q2proded.exe
-    TARG_c := q2pro.exe
-    TARG_g := game$(CPU).dll
+    TARG_s := build/q2proded.exe
+    TARG_c := build/q2pro.exe
+    TARG_g := build/baseq2/game$(CPU).dll
+    TARG_r := build/rogue/game$(CPU).dll
+    TARG_x := build/xatrix/game$(CPU).dll
 else
-    TARG_s := q2proded
-    TARG_c := q2pro
-    TARG_g := game$(CPU).so
+    TARG_s := build/q2proded
+    TARG_c := build/q2pro
+    TARG_g := build/baseq2/game$(CPU).so
+    TARG_r := build/rogue/game$(CPU).so
+    TARG_x := build/xatrix/game$(CPU).so
 endif
 
-all: $(TARG_s) $(TARG_c) $(TARG_g)
+all: $(TARG_s) $(TARG_c) $(TARG_g) $(TARG_r) $(TARG_x)
 
 default: all
 
@@ -536,28 +692,36 @@ endif
 BUILD_s := .q2proded
 BUILD_c := .q2pro
 BUILD_g := .baseq2
+BUILD_r := .rogue
+BUILD_x := .xatrix
 
 # Rewrite paths to build directories
 OBJS_s := $(patsubst %,$(BUILD_s)/%,$(OBJS_s))
 OBJS_c := $(patsubst %,$(BUILD_c)/%,$(OBJS_c))
 OBJS_g := $(patsubst %,$(BUILD_g)/%,$(OBJS_g))
+OBJS_r := $(patsubst %,$(BUILD_r)/%,$(OBJS_r))
+OBJS_x := $(patsubst %,$(BUILD_x)/%,$(OBJS_x))
 
 DEPS_s := $(OBJS_s:.o=.d)
 DEPS_c := $(OBJS_c:.o=.d)
 DEPS_g := $(OBJS_g:.o=.d)
+DEPS_r := $(OBJS_r:.o=.d)
+DEPS_x := $(OBJS_x:.o=.d)
 
 -include $(DEPS_s)
 -include $(DEPS_c)
 -include $(DEPS_g)
+-include $(DEPS_r)
+-include $(DEPS_x)
 
 clean:
 	$(E) [CLEAN]
-	$(Q)$(RM) $(TARG_s) $(TARG_c) $(TARG_g)
-	$(Q)$(RMDIR) $(BUILD_s) $(BUILD_c) $(BUILD_g)
+	$(Q)$(RM) $(TARG_s) $(TARG_c) $(TARG_g) $(TARG_r) $(TARG_x)
+	$(Q)$(RMDIR) $(BUILD_s) $(BUILD_c) $(BUILD_g) $(BUILD_r) $(BUILD_x)
 
-strip: $(TARG_s) $(TARG_c) $(TARG_g)
+strip: $(TARG_s) $(TARG_c) $(TARG_g) $(TARG_r) $(TARG_x)
 	$(E) [STRIP]
-	$(Q)$(STRIP) $(TARG_s) $(TARG_c) $(TARG_g)
+	$(Q)$(STRIP) $(TARG_s) $(TARG_c) $(TARG_g) $(TARG_r) $(TARG_x)
 
 # ------
 
@@ -610,3 +774,36 @@ $(TARG_g): $(OBJS_g)
 	$(Q)$(MKDIR) $(@D)
 	$(Q)$(CC) $(LDFLAGS) $(LDFLAGS_g) -o $@ $(OBJS_g) $(LIBS) $(LIBS_g)
 
+# ------
+
+$(BUILD_r)/%.o: %.c
+	$(E) [CC] $@
+	$(Q)$(MKDIR) $(@D)
+	$(Q)$(CC) -c $(CFLAGS) $(CFLAGS_r) -o $@ $<
+
+$(BUILD_r)/%.o: %.rc
+	$(E) [RC] $@
+	$(Q)$(MKDIR) $(@D)
+	$(Q)$(WINDRES) $(RCFLAGS) $(RCFLAGS_r) -o $@ $<
+
+$(TARG_r): $(OBJS_r)
+	$(E) [LD] $@
+	$(Q)$(MKDIR) $(@D)
+	$(Q)$(CC) $(LDFLAGS) $(LDFLAGS_r) -o $@ $(OBJS_r) $(LIBS) $(LIBS_r)
+
+# ------
+
+$(BUILD_x)/%.o: %.c
+	$(E) [CC] $@
+	$(Q)$(MKDIR) $(@D)
+	$(Q)$(CC) -c $(CFLAGS) $(CFLAGS_x) -o $@ $<
+
+$(BUILD_x)/%.o: %.rc
+	$(E) [RC] $@
+	$(Q)$(MKDIR) $(@D)
+	$(Q)$(WINDRES) $(RCFLAGS) $(RCFLAGS_x) -o $@ $<
+
+$(TARG_x): $(OBJS_x)
+	$(E) [LD] $@
+	$(Q)$(MKDIR) $(@D)
+	$(Q)$(CC) $(LDFLAGS) $(LDFLAGS_x) -o $@ $(OBJS_x) $(LIBS) $(LIBS_x)

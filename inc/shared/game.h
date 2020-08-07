@@ -20,18 +20,27 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define GAME_H
 
 #include "shared/list.h"
+#include "speedrun/timer.h"
 
 //
 // game.h -- game dll information visible to server
 //
 
-#define GAME_API_VERSION    3
+#define GAME_API_VERSION    4
+
+#define GAME_BASEQ2			1
+#define GAME_ROGUE			2
+#define GAME_XATRIX			3
 
 // edict->svflags
 
 #define SVF_NOCLIENT            0x00000001  // don't send entity to clients, even if it has effects
 #define SVF_DEADMONSTER         0x00000002  // treat as CONTENTS_DEADMONSTER for collision
 #define SVF_MONSTER             0x00000004  // treat as CONTENTS_MONSTER for collision
+//ROGUE -- added for things that are damageable, but not monsters
+// right now, only the tesla has this
+#define SVF_DAMAGEABLE			0x00000008
+//ROGUE end
 
 // edict->solid values
 
@@ -182,6 +191,14 @@ typedef struct {
     void (*AddCommandString)(const char *text);
 
     void (*DebugGraph)(float value, int color);
+
+    void (*SpeedrunTimerAddMilliseconds)(int);
+    int (*SpeedrunPauseTimer)(void);
+    void (*SpeedrunLevelFinished)(void);
+    void (*SpeedrunGetTotalTimeString)(
+        int accuracy, char time_string[static SPEEDRUN_TIME_LENGTH]);
+    void (*SpeedrunGetLevelTimeString)(
+        int accuracy, char time_string[static SPEEDRUN_TIME_LENGTH]);
 } game_import_t;
 
 //
@@ -218,7 +235,7 @@ typedef struct {
     void (*ClientCommand)(edict_t *ent);
     void (*ClientThink)(edict_t *ent, usercmd_t *cmd);
 
-    void (*RunFrame)(void);
+    void (*RunFrame)(bool);
 
     // ServerCommand will be called when an "sv <command>" command is issued on the
     // server console.
@@ -239,5 +256,148 @@ typedef struct {
     int         num_edicts;     // current number, <= max_edicts
     int         max_edicts;
 } game_export_t;
+
+
+#ifdef THISGAME
+//
+// this structure is cleared as each map is entered
+// it is read/written to the level.sav file for savegames
+//
+
+#if THISGAME == GAME_BASEQ2
+#define HAVE_LEVEL_LOCALS_T
+typedef struct {
+    int         framenum;
+    float       time;
+
+    char        level_name[MAX_QPATH];  // the descriptive name (Outer Base, etc)
+    char        mapname[MAX_QPATH];     // the server name (base1, etc)
+    char        nextmap[MAX_QPATH];     // go here when fraglimit is hit
+
+    // intermission state
+    int         intermission_framenum;  // time the intermission was started
+    char        *changemap;
+    int         exitintermission;
+    vec3_t      intermission_origin;
+    vec3_t      intermission_angle;
+
+    edict_t     *sight_client;  // changed once each frame for coop games
+
+    edict_t     *sight_entity;
+    int         sight_entity_framenum;
+    edict_t     *sound_entity;
+    int         sound_entity_framenum;
+    edict_t     *sound2_entity;
+    int         sound2_entity_framenum;
+
+    int         pic_health;
+
+    int         total_secrets;
+    int         found_secrets;
+
+    int         total_goals;
+    int         found_goals;
+
+    int         total_monsters;
+    int         killed_monsters;
+
+    edict_t     *current_entity;    // entity running from G_RunFrame
+    int         body_que;           // dead bodies
+
+    int         power_cubes;        // ugly necessity for coop
+} level_locals_t;
+#elif THISGAME == GAME_ROGUE
+#define HAVE_LEVEL_LOCALS_T
+typedef struct
+{
+	int			framenum;
+	float		time;
+
+	char		level_name[MAX_QPATH];	// the descriptive name (Outer Base, etc)
+	char		mapname[MAX_QPATH];		// the server name (base1, etc)
+	char		nextmap[MAX_QPATH];		// go here when fraglimit is hit
+
+										// intermission state
+	float		intermissiontime;		// time the intermission was started
+	char		*changemap;
+	int			exitintermission;
+	vec3_t		intermission_origin;
+	vec3_t		intermission_angle;
+
+	edict_t		*sight_client;	// changed once each frame for coop games
+
+	edict_t		*sight_entity;
+	int			sight_entity_framenum;
+	edict_t		*sound_entity;
+	int			sound_entity_framenum;
+	edict_t		*sound2_entity;
+	int			sound2_entity_framenum;
+
+	int			pic_health;
+
+	int			total_secrets;
+	int			found_secrets;
+
+	int			total_goals;
+	int			found_goals;
+
+	int			total_monsters;
+	int			killed_monsters;
+
+	edict_t		*current_entity;	// entity running from G_RunFrame
+	int			body_que;			// dead bodies
+
+	int			power_cubes;		// ugly necessity for coop
+
+									// ROGUE
+	edict_t		*disguise_violator;
+	int			disguise_violation_framenum;
+	// ROGUE
+} level_locals_t;
+#elif THISGAME == GAME_XATRIX
+#define HAVE_LEVEL_LOCALS_T
+typedef struct
+{
+	int			framenum;
+	float		time;
+
+	char		level_name[MAX_QPATH];	// the descriptive name (Outer Base, etc)
+	char		mapname[MAX_QPATH];		// the server name (base1, etc)
+	char		nextmap[MAX_QPATH];		// go here when fraglimit is hit
+
+										// intermission state
+	float		intermissiontime;		// time the intermission was started
+	char		*changemap;
+	int			exitintermission;
+	vec3_t		intermission_origin;
+	vec3_t		intermission_angle;
+
+	edict_t		*sight_client;	// changed once each frame for coop games
+
+	edict_t		*sight_entity;
+	int			sight_entity_framenum;
+	edict_t		*sound_entity;
+	int			sound_entity_framenum;
+	edict_t		*sound2_entity;
+	int			sound2_entity_framenum;
+
+	int			pic_health;
+
+	int			total_secrets;
+	int			found_secrets;
+
+	int			total_goals;
+	int			found_goals;
+
+	int			total_monsters;
+	int			killed_monsters;
+
+	edict_t		*current_entity;	// entity running from G_RunFrame
+	int			body_que;			// dead bodies
+
+	int			power_cubes;		// ugly necessity for coop
+} level_locals_t;
+#endif
+#endif
 
 #endif // GAME_H

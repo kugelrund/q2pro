@@ -314,10 +314,13 @@ void HuntTarget(edict_t *self)
     vec3_t  vec;
 
     self->goalentity = self->enemy;
-    if (self->monsterinfo.aiflags & AI_STAND_GROUND)
+    if (self->monsterinfo.aiflags & AI_STAND_GROUND) {
         self->monsterinfo.stand(self);
-    else
-        self->monsterinfo.run(self);
+    } else {
+        if (self->monsterinfo.run != NULL) {
+            self->monsterinfo.run(self);
+        }
+    }
     VectorSubtract(self->enemy->s.origin, self->s.origin, vec);
     self->ideal_yaw = vectoyaw(vec);
     // wait a while before first attack

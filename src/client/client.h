@@ -525,6 +525,16 @@ extern cvar_t    *cl_thirdperson_range;
 
 extern cvar_t    *cl_async;
 
+// Additions for q2pro-speed
+extern cvar_t    *cl_drawSpeedrunTotalTimer;
+extern cvar_t    *cl_drawSpeedrunLevelTimer;
+extern cvar_t    *cl_drawStrafeHelper;
+extern cvar_t    *cl_strafeHelperCenter;
+extern cvar_t    *cl_strafeHelperCenterMarker;
+extern cvar_t    *cl_strafeHelperHeight;
+extern cvar_t    *cl_strafeHelperScale;
+extern cvar_t    *cl_strafeHelperY;
+
 //
 // userinfo
 //
