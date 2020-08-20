@@ -6,6 +6,7 @@
 #include <math.h>
 #include <stdint.h>
 
+#define STRAFE_HELPER_INTERFACE_DISABLE_DRAW_SPEED
 
 static const uint32_t shi_color_accelerating = MakeColor(0, 128, 32, 96);
 static const uint32_t shi_color_optimal = MakeColor(0, 255, 64, 192);
