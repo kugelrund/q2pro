@@ -332,10 +332,8 @@ idnewt:28000
 bool NET_StringToAdr(const char *s, netadr_t *a, int default_port)
 {
     char copy[MAX_STRING_CHARS], *h, *p;
-    size_t len;
 
-    len = Q_strlcpy(copy, s, sizeof(copy));
-    if (len >= sizeof(copy))
+    if (Q_strlcpy(copy, s, sizeof(copy)) >= sizeof(copy))
         return false;
 
     // parse IPv6 address in square brackets
@@ -1637,10 +1635,10 @@ void NET_UpdateStream(netstream_t *s)
     e = os_get_io(s->socket);
 
     FIFO_Reserve(&s->recv, &len);
-    e->wantread = len ? true : false;
+    e->wantread = len;
 
     FIFO_Peek(&s->send, &len);
-    e->wantwrite = len ? true : false;
+    e->wantwrite = len;
 }
 
 // returns NET_OK only when there was some data read

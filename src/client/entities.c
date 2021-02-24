@@ -32,7 +32,7 @@ FRAME PARSING
 =========================================================================
 */
 
-static inline bool entity_optimized(const entity_state_t *state)
+static inline bool entity_is_optimized(const entity_state_t *state)
 {
     if (cls.serverProtocol != PROTOCOL_VERSION_Q2PRO)
         return false;
@@ -126,7 +126,7 @@ entity_update_old(centity_t *ent, const entity_state_t *state, const vec_t *orig
     ent->prev = ent->current;
 }
 
-static inline bool entity_new(const centity_t *ent)
+static inline bool entity_is_new(const centity_t *ent)
 {
     if (!cl.oldframe.valid)
         return true;    // last received frame was invalid
@@ -146,7 +146,7 @@ static inline bool entity_new(const centity_t *ent)
     return false;
 }
 
-static void entity_update(const entity_state_t *state)
+static void parse_entity_update(const entity_state_t *state)
 {
     centity_t *ent = &cl_entities[state->number];
     const vec_t *origin;
@@ -167,14 +167,14 @@ static void entity_update(const entity_state_t *state)
     }
 
     // work around Q2PRO server bandwidth optimization
-    if (entity_optimized(state)) {
+    if (entity_is_optimized(state)) {
         VectorScale(cl.frame.ps.pmove.origin, 0.125f, origin_v);
         origin = origin_v;
     } else {
         origin = state->origin;
     }
 
-    if (entity_new(ent)) {
+    if (entity_is_new(ent)) {
         // wasn't in last update, so initialize some things
         entity_update_new(ent, state, origin);
     } else {
@@ -185,13 +185,13 @@ static void entity_update(const entity_state_t *state)
     ent->current = *state;
 
     // work around Q2PRO server bandwidth optimization
-    if (entity_optimized(state)) {
+    if (entity_is_optimized(state)) {
         Com_PlayerToEntityState(&cl.frame.ps, &ent->current);
     }
 }
 
 // an entity has just been parsed that has an event value
-static void entity_event(int number)
+static void parse_entity_event(int number)
 {
     centity_t *cent = &cl_entities[number];
 
@@ -287,7 +287,7 @@ static void set_active_state(void)
 }
 
 static void
-player_update(server_frame_t *oldframe, server_frame_t *frame, int framediv)
+check_player_lerp(server_frame_t *oldframe, server_frame_t *frame, int framediv)
 {
     player_state_t *ps, *ops;
     centity_t *ent;
@@ -384,10 +384,10 @@ void CL_DeltaFrame(void)
         state = &cl.entityStates[j];
 
         // set current and prev
-        entity_update(state);
+        parse_entity_update(state);
 
         // fire events
-        entity_event(state->number);
+        parse_entity_event(state->number);
     }
 
     if (cls.demo.recording && !cls.demo.paused && !cls.demo.seeking && CL_FRAMESYNC) {
@@ -409,11 +409,11 @@ void CL_DeltaFrame(void)
         IN_Activate();
     }
 
-    player_update(&cl.oldframe, &cl.frame, 1);
+    check_player_lerp(&cl.oldframe, &cl.frame, 1);
 
 #if USE_FPS
     if (CL_FRAMESYNC)
-        player_update(&cl.oldkeyframe, &cl.keyframe, cl.framediv);
+        check_player_lerp(&cl.oldkeyframe, &cl.keyframe, cl.framediv);
 #endif
 
     CL_CheckPredictionError();
@@ -615,7 +615,7 @@ static void CL_AddPacketEntities(void)
                 if (renderfx & RF_USE_DISGUISE) {
                     char buffer[MAX_QPATH];
 
-                    Q_concat(buffer, sizeof(buffer), "players/", ci->model_name, "/disguise.pcx", NULL);
+                    Q_concat(buffer, sizeof(buffer), "players/", ci->model_name, "/disguise.pcx");
                     ent.skin = R_RegisterSkin(buffer);
                 }
             } else {
@@ -844,7 +844,7 @@ static void CL_AddPacketEntities(void)
                 V_AddLight(ent.origin, i, 0, 1, 0);
             } else if (effects & EF_TRAP) {
                 ent.origin[2] += 32;
-                CL_TrapParticles(&ent);
+                CL_TrapParticles(cent, ent.origin);
 #if USE_DLIGHTS
                 i = (Q_rand() % 100) + 100;
                 V_AddLight(ent.origin, i, 1, 0.8f, 0.1f);
@@ -1176,13 +1176,13 @@ void CL_CalcViewValues(void)
             cl.refdef.vieworg[2] -= cl.predicted_step * (100 - delta) * 0.01f;
         }
     } else {
+        int i;
+
         // just use interpolated values
-        cl.refdef.vieworg[0] = ops->pmove.origin[0] * 0.125f +
-                               lerp * (ps->pmove.origin[0] - ops->pmove.origin[0]) * 0.125f;
-        cl.refdef.vieworg[1] = ops->pmove.origin[1] * 0.125f +
-                               lerp * (ps->pmove.origin[1] - ops->pmove.origin[1]) * 0.125f;
-        cl.refdef.vieworg[2] = ops->pmove.origin[2] * 0.125f +
-                               lerp * (ps->pmove.origin[2] - ops->pmove.origin[2]) * 0.125f;
+        for (i = 0; i < 3; i++) {
+            cl.refdef.vieworg[i] = SHORT2COORD(ops->pmove.origin[i] +
+                lerp * (ps->pmove.origin[i] - ops->pmove.origin[i]));
+        }
     }
 
     // if not running a demo or on a locked frame, add the local angle movement

@@ -109,7 +109,7 @@ static bool _GL_LightPoint(vec3_t start, vec3_t color)
             continue;
 
         // cull in X/Y plane
-        if (ent->angles[0] || ent->angles[1] || ent->angles[2]) {
+        if (!VectorEmpty(ent->angles)) {
             if (fabsf(start[0] - ent->origin[0]) > model->radius)
                 continue;
             if (fabsf(start[1] - ent->origin[1]) > model->radius)
@@ -418,8 +418,8 @@ void GL_DrawBspModel(mmodel_t *model)
         }
 
         // alpha faces on transformed inline models are drawn with world GL
-        // matrix. this bug is intentional: some maps exploit this to hide
-        // surfaces that would otherwise be visible.
+        // matrix. this Q2 bug is not fixed intentionally: some maps exploit it
+        // to hide surfaces that would otherwise be visible.
         if (face->drawflags & SURF_TRANS_MASK) {
             if (model->drawframe != glr.drawframe)
                 GL_AddAlphaFace(face);

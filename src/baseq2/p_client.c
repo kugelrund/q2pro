@@ -107,7 +107,7 @@ void SP_info_player_start(edict_t *self)
     if (Q_stricmp(level.mapname, "security") == 0) {
         // invoke one of our gross, ugly, disgusting hacks
         self->think = SP_CreateCoopSpots;
-        self->nextthink = level.time + FRAMETIME;
+        self->nextthink = level.framenum + 1;
     }
 }
 
@@ -150,7 +150,7 @@ void SP_info_player_coop(edict_t *self)
         (Q_stricmp(level.mapname, "strike") == 0)) {
         // invoke one of our gross, ugly, disgusting hacks
         self->think = SP_FixCoopSpots;
-        self->nextthink = level.time + FRAMETIME;
+        self->nextthink = level.framenum + 1;
     }
 }
 
@@ -429,7 +429,7 @@ void TossClientWeapon(edict_t *self)
         drop->spawnflags |= DROPPED_PLAYER_ITEM;
 
         drop->touch = Touch_Item;
-        drop->nextthink = level.time + (self->client->quad_framenum - level.framenum) * FRAMETIME;
+        drop->nextthink = self->client->quad_framenum;
         drop->think = G_FreeEdict;
     }
 }
@@ -496,7 +496,7 @@ void player_die(edict_t *self, edict_t *inflictor, edict_t *attacker, int damage
     self->svflags |= SVF_DEADMONSTER;
 
     if (!self->deadflag) {
-        self->client->respawn_time = level.time + 1.0f;
+        self->client->respawn_framenum = level.framenum + 1.0f * BASE_FRAMERATE;
         LookAtKiller(self, inflictor, attacker);
         self->client->ps.pmove.pm_type = PM_DEAD;
         ClientObituary(self, inflictor, attacker);
@@ -953,7 +953,7 @@ void respawn(edict_t *self)
         self->client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
         self->client->ps.pmove.pm_time = 14;
 
-        self->client->respawn_time = level.time;
+        self->client->respawn_framenum = level.framenum;
 
         return;
     }
@@ -1034,7 +1034,7 @@ void spectator_respawn(edict_t *ent)
         ent->client->ps.pmove.pm_time = 14;
     }
 
-    ent->client->respawn_time = level.time;
+    ent->client->respawn_framenum = level.framenum;
 
     if (ent->client->pers.spectator)
         gi.bprintf(PRINT_HIGH, "%s has moved to the sidelines\n", ent->client->pers.netname);
@@ -1124,7 +1124,7 @@ void PutClientInServer(edict_t *ent)
     ent->mass = 200;
     ent->solid = SOLID_BBOX;
     ent->deadflag = DEAD_NO;
-    ent->air_finished = level.time + 12;
+    ent->air_finished_framenum = level.framenum + 12 * BASE_FRAMERATE;
     ent->clipmask = MASK_PLAYERSOLID;
     ent->model = "players/male/tris.md2";
     ent->pain = player_pain;
@@ -1141,9 +1141,9 @@ void PutClientInServer(edict_t *ent)
     // clear playerstate values
     memset(&ent->client->ps, 0, sizeof(client->ps));
 
-    client->ps.pmove.origin[0] = spawn_origin[0] * 8;
-    client->ps.pmove.origin[1] = spawn_origin[1] * 8;
-    client->ps.pmove.origin[2] = spawn_origin[2] * 8;
+    for (i = 0; i < 3; i++) {
+        client->ps.pmove.origin[i] = COORD2SHORT(spawn_origin[i]);
+    }
 
     if (deathmatch->value && ((int)dmflags->value & DF_FIXED_FOV)) {
         client->ps.fov = 90;
@@ -1224,7 +1224,7 @@ void ClientBeginDeathmatch(edict_t *ent)
     // locate ent at a spawn point
     PutClientInServer(ent);
 
-    if (level.intermissiontime) {
+    if (level.intermission_framenum) {
         MoveClientToIntermission(ent);
     } else {
         // send effect
@@ -1279,7 +1279,7 @@ void ClientBegin(edict_t *ent)
         PutClientInServer(ent);
     }
 
-    if (level.intermissiontime) {
+    if (level.intermission_framenum) {
         MoveClientToIntermission(ent);
     } else {
         // send effect if in a multiplayer game
@@ -1528,10 +1528,10 @@ void ClientThink(edict_t *ent, usercmd_t *ucmd)
     level.current_entity = ent;
     client = ent->client;
 
-    if (level.intermissiontime) {
+    if (level.intermission_framenum) {
         client->ps.pmove.pm_type = PM_FREEZE;
         // can exit intermission after five seconds
-        if (level.time > level.intermissiontime + 5.0f
+        if (level.framenum > level.intermission_framenum + 5.0f * BASE_FRAMERATE
             && (ucmd->buttons & BUTTON_ANY))
             level.exitintermission = true;
         return;
@@ -1563,8 +1563,8 @@ void ClientThink(edict_t *ent, usercmd_t *ucmd)
         pm.s = client->ps.pmove;
 
         for (i = 0 ; i < 3 ; i++) {
-            pm.s.origin[i] = ent->s.origin[i] * 8;
-            pm.s.velocity[i] = ent->velocity[i] * 8;
+            pm.s.origin[i] = COORD2SHORT(ent->s.origin[i]);
+            pm.s.velocity[i] = COORD2SHORT(ent->velocity[i]);
         }
 
         if (memcmp(&client->old_pmove, &pm.s, sizeof(pm.s))) {
@@ -1585,8 +1585,8 @@ void ClientThink(edict_t *ent, usercmd_t *ucmd)
         client->old_pmove = pm.s;
 
         for (i = 0 ; i < 3 ; i++) {
-            ent->s.origin[i] = pm.s.origin[i] * 0.125f;
-            ent->velocity[i] = pm.s.velocity[i] * 0.125f;
+            ent->s.origin[i] = SHORT2COORD(pm.s.origin[i]);
+            ent->velocity[i] = SHORT2COORD(pm.s.velocity[i]);
         }
 
         VectorCopy(pm.mins, ent->mins);
@@ -1698,14 +1698,14 @@ void ClientBeginServerFrame(edict_t *ent)
     gclient_t   *client;
     int         buttonMask;
 
-    if (level.intermissiontime)
+    if (level.intermission_framenum)
         return;
 
     client = ent->client;
 
     if (deathmatch->value &&
         client->pers.spectator != client->resp.spectator &&
-        (level.time - client->respawn_time) >= 5) {
+        (level.framenum - client->respawn_framenum) >= 5 * BASE_FRAMERATE) {
         spectator_respawn(ent);
         return;
     }
@@ -1718,7 +1718,7 @@ void ClientBeginServerFrame(edict_t *ent)
 
     if (ent->deadflag) {
         // wait for any button just going down
-        if (level.time > client->respawn_time) {
+        if (level.framenum > client->respawn_framenum) {
             // in deathmatch, only wait for attack button
             if (deathmatch->value)
                 buttonMask = BUTTON_ATTACK;

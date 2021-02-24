@@ -87,7 +87,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // game features this server supports
 #define SV_FEATURES (GMF_CLIENTNUM | GMF_PROPERINUSE | GMF_MVDSPEC | \
                      GMF_WANT_ALL_DISCONNECTS | GMF_ENHANCED_SAVEGAMES | \
-                     SV_GMF_VARIABLE_FPS | GMF_EXTRA_USERINFO)
+                     SV_GMF_VARIABLE_FPS | GMF_EXTRA_USERINFO | \
+                     GMF_IPV6_ADDRESS_AWARE)
 
 // ugly hack for SV_Shutdown
 #define MVD_SPAWN_DISABLED  0
@@ -97,7 +98,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 typedef struct {
     int         number;
-    unsigned    num_entities;
+    int         num_entities;
     unsigned    first_entity;
     player_packed_t ps;
     int         clientNum;
@@ -208,11 +209,14 @@ typedef enum {
 #endif // USE_AC_SERVER
 
 #define MSG_POOLSIZE        1024
-#define MSG_TRESHOLD        (64 - 10)   // keep pmsg_s 64 bytes aligned
+#define MSG_TRESHOLD        (62 - sizeof(list_t))   // keep message_packet_t 64 bytes aligned
 
-#define MSG_RELIABLE    1
-#define MSG_CLEAR       2
-#define MSG_COMPRESS    4
+#define MSG_RELIABLE        1
+#define MSG_CLEAR           2
+#define MSG_COMPRESS        4
+#define MSG_COMPRESS_AUTO   8
+
+#define ZPACKET_HEADER      5
 
 #define MAX_SOUND_PACKET   14
 
@@ -237,6 +241,9 @@ typedef struct {
 
 #define FOR_EACH_CLIENT(client) \
     LIST_FOR_EACH(client_t, client, &sv_clientlist, entry)
+
+#define CLIENT_ACTIVE(cl) \
+    ((cl)->state == cs_spawned && !(cl)->download && !(cl)->nodata)
 
 #define PL_S2C(cl) (cl->frames_sent ? \
     (1.0f - (float)cl->frames_acked / cl->frames_sent) * 100.0f : 0.0f)
@@ -268,20 +275,20 @@ typedef struct client_s {
     int             number;     // client slot number
 
     // client flags
-    unsigned        reconnected: 1;
-    unsigned        nodata: 1;
-    unsigned        has_zlib: 1;
-    unsigned        drop_hack: 1;
+    bool            reconnected: 1;
+    bool            nodata: 1;
+    bool            has_zlib: 1;
+    bool            drop_hack: 1;
 #if USE_ICMP
-    unsigned        unreachable: 1;
+    bool            unreachable: 1;
 #endif
-    unsigned        http_download: 1;
+    bool            http_download: 1;
 
     // userinfo
     char            userinfo[MAX_INFO_STRING];  // name, etc
     char            name[MAX_CLIENT_NAME];      // extracted from userinfo, high bits masked
     int             messagelevel;               // for filtering printed messages
-    size_t          rate;
+    unsigned        rate;
     ratelimit_t     ratelimit_namechange;       // for suppressing "foo changed name" flood
 
     // console var probes
@@ -299,6 +306,8 @@ typedef struct client_s {
                                     // commands exhaust it, assume time cheating
     int             num_moves;      // reset every 10 seconds
     int             moves_per_sec;  // average movement FPS
+    int             cmd_msec_used;
+    float           timescale;
 
     int             ping, min_ping, max_ping;
     int             avg_ping_time, avg_ping_count;
@@ -313,7 +322,7 @@ typedef struct client_s {
     unsigned        frameflags;
 
     // rate dropping
-    size_t          message_size[RATE_MESSAGES];    // used to rate drop normal packets
+    unsigned        message_size[RATE_MESSAGES];    // used to rate drop normal packets
     int             suppress_count;                 // number of messages rate suppressed
     unsigned        send_time, send_delta;          // used to rate drop async packets
 
@@ -339,8 +348,8 @@ typedef struct client_s {
     list_t              msg_unreliable_list;
     list_t              msg_reliable_list;
     message_packet_t    *msg_pool;
-    size_t              msg_unreliable_bytes;   // total size of unreliable datagram
-    size_t              msg_dynamic_bytes;      // total size of dynamic memory allocated
+    unsigned            msg_unreliable_bytes;   // total size of unreliable datagram
+    unsigned            msg_dynamic_bytes;      // total size of dynamic memory allocated
 
     // per-client baseline chunks
     entity_packed_t *baselines[SV_BASELINES_CHUNKS];
@@ -408,12 +417,12 @@ typedef struct {
 
 typedef struct {
     list_t  entry;
-    int     len;
     char    string[1];
 } stuffcmd_t;
 
 typedef enum {
     FA_IGNORE,
+    FA_LOG,
     FA_PRINT,
     FA_STUFF,
     FA_KICK,
@@ -428,15 +437,22 @@ typedef struct {
     char            string[1];
 } filtercmd_t;
 
+typedef struct {
+    list_t          entry;
+    filteraction_t  action;
+    char            *var;
+    char            *match;
+    char            *comment;
+} cvarban_t;
+
 #define MAX_MASTERS         8       // max recipients for heartbeat packets
 #define HEARTBEAT_SECONDS   300
 
 typedef struct {
-    list_t entry;
-    netadr_t adr;
-    unsigned last_ack;
-    time_t last_resolved;
-    char name[1];
+    netadr_t        adr;
+    unsigned        last_ack;
+    time_t          last_resolved;
+    char            *name;
 } master_t;
 
 typedef struct {
@@ -448,11 +464,6 @@ typedef struct {
     bool            endofunit;
     cm_t            cm;
 } mapcmd_t;
-
-#define FOR_EACH_MASTER(m) \
-    LIST_FOR_EACH(master_t, m, &sv_masterlist, entry)
-#define FOR_EACH_MASTER_SAFE(m, n) \
-    LIST_FOR_EACH_SAFE(master_t, m, n, &sv_masterlist, entry)
 
 typedef struct server_static_s {
     bool        initialized;        // sv_init has completed
@@ -469,6 +480,9 @@ typedef struct server_static_s {
 #endif
 
     unsigned        last_heartbeat;
+    unsigned        last_timescale_check;
+
+    unsigned        heartbeat_index;
 
     ratelimit_t     ratelimit_status;
     ratelimit_t     ratelimit_auth;
@@ -479,16 +493,20 @@ typedef struct server_static_s {
 
 //=============================================================================
 
-extern list_t      sv_masterlist; // address of the master server
-extern list_t      sv_banlist;
-extern list_t      sv_blacklist;
-extern list_t      sv_cmdlist_connect;
-extern list_t      sv_cmdlist_begin;
-extern list_t      sv_filterlist;
-extern list_t      sv_clientlist; // linked list of non-free clients
+extern master_t     sv_masters[MAX_MASTERS];    // address of the master server
 
-extern server_static_t     svs;        // persistant server info
-extern server_t            sv;         // local server
+extern list_t       sv_banlist;
+extern list_t       sv_blacklist;
+extern list_t       sv_cmdlist_connect;
+extern list_t       sv_cmdlist_begin;
+extern list_t       sv_lrconlist;
+extern list_t       sv_filterlist;
+extern list_t       sv_cvarbanlist;
+extern list_t       sv_infobanlist;
+extern list_t       sv_clientlist;  // linked list of non-free clients
+
+extern server_static_t      svs;        // persistant server info
+extern server_t             sv;         // local server
 
 extern pmoveParams_t    sv_pmp;
 
@@ -704,6 +722,7 @@ void SV_AlignKeyFrames(client_t *client);
 #else
 #define SV_AlignKeyFrames(client) (void)0
 #endif
+cvarban_t *SV_CheckInfoBans(const char *info, bool match_only);
 
 //
 // sv_ccmds.c
@@ -725,7 +744,6 @@ void SV_PrintMiscInfo(void);
 #define ES_INUSE(s) \
     ((s)->modelindex || (s)->effects || (s)->sound || (s)->event)
 
-void SV_BuildProxyClientFrame(client_t *client);
 void SV_BuildClientFrame(client_t *client);
 void SV_WriteFrameToClient_Default(client_t *client);
 void SV_WriteFrameToClient_Enhanced(client_t *client);
@@ -784,8 +802,6 @@ int SV_AreaEdicts(vec3_t mins, vec3_t maxs, edict_t **list, int maxcount, int ar
 // test.
 // returns the number of pointers filled in
 // ??? does this always return the world?
-
-bool SV_EdictIsVisible(cm_t *cm, edict_t *ent, byte *mask);
 
 //===================================================================
 

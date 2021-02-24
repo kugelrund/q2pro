@@ -275,10 +275,10 @@ void gunner_pain(edict_t *self, edict_t *other, float kick, int damage)
     if (self->health < (self->max_health / 2))
         self->s.skinnum = 1;
 
-    if (level.time < self->pain_debounce_time)
+    if (level.framenum < self->pain_debounce_framenum)
         return;
 
-    self->pain_debounce_time = level.time + 3;
+    self->pain_debounce_framenum = level.framenum + 3 * BASE_FRAMERATE;
 
     if (Q_rand() & 1)
         gi.sound(self, CHAN_VOICE, sound_pain, 1, ATTN_NORM, 0);
@@ -360,13 +360,13 @@ void gunner_duck_down(edict_t *self)
 
     self->maxs[2] -= 32;
     self->takedamage = DAMAGE_YES;
-    self->monsterinfo.pausetime = level.time + 1;
+    self->monsterinfo.pause_framenum = level.framenum + 1 * BASE_FRAMERATE;
     gi.linkentity(self);
 }
 
 void gunner_duck_hold(edict_t *self)
 {
-    if (level.time >= self->monsterinfo.pausetime)
+    if (level.framenum >= self->monsterinfo.pause_framenum)
         self->monsterinfo.aiflags &= ~AI_HOLD_FRAME;
     else
         self->monsterinfo.aiflags |= AI_HOLD_FRAME;

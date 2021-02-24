@@ -316,7 +316,7 @@ void brain_duck_down(edict_t *self) {
 }
 
 void brain_duck_hold(edict_t *self) {
-    if (level.time >= self->monsterinfo.pausetime)
+    if (level.framenum >= self->monsterinfo.pause_framenum)
         self->monsterinfo.aiflags &= ~AI_HOLD_FRAME;
     else
         self->monsterinfo.aiflags |= AI_HOLD_FRAME;
@@ -349,7 +349,7 @@ void brain_dodge(edict_t *self, edict_t *attacker, float eta) {
     if (!self->enemy)
         self->enemy = attacker;
 
-    self->monsterinfo.pausetime = level.time + eta + 0.5f;
+    self->monsterinfo.pause_framenum = level.framenum + (eta + 0.5f) * BASE_FRAMERATE;
     self->monsterinfo.currentmove = &brain_move_duck;
 }
 
@@ -527,10 +527,10 @@ void brain_pain(edict_t *self, edict_t *other, float kick, int damage) {
     if (self->health < (self->max_health / 2))
         self->s.skinnum = 1;
 
-    if (level.time < self->pain_debounce_time)
+    if (level.framenum < self->pain_debounce_framenum)
         return;
 
-    self->pain_debounce_time = level.time + 3;
+    self->pain_debounce_framenum = level.framenum + 3 * BASE_FRAMERATE;
     if (skill->value == 3)
         return;     // no pain anims in nightmare
 

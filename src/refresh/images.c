@@ -621,7 +621,7 @@ static int IMG_SaveTGA(screenshot_t *s)
     header[16] = 24;     // pixel size
 
     if (!fwrite(&header, sizeof(header), 1, s->fp)) {
-        return -errno;
+        return Q_ERR_FAILURE;
     }
 
     // swap RGB to BGR
@@ -640,12 +640,12 @@ static int IMG_SaveTGA(screenshot_t *s)
 
     if (s->row_stride == s->width * 3) {
         if (!fwrite(s->pixels, s->width * s->height * 3, 1, s->fp)) {
-            return -errno;
+            return Q_ERR_FAILURE;
         }
     } else {
         for (i = 0; i < s->height; i++) {
             if (!fwrite(s->pixels + i * s->row_stride, s->width * 3, 1, s->fp)) {
-                return -errno;
+                return Q_ERR_FAILURE;
             }
         }
     }
@@ -1114,7 +1114,7 @@ static int create_screenshot(char *buffer, size_t size, FILE **f,
     int i, ret;
 
     if (Q_snprintf(temp, sizeof(temp), "%s/screenshots/", fs_gamedir) >= sizeof(temp)) {
-        return -ENAMETOOLONG;
+        return Q_ERR(ENAMETOOLONG);
     }
     if ((ret = FS_CreatePath(temp)) < 0) {
         return ret;
@@ -1123,14 +1123,14 @@ static int create_screenshot(char *buffer, size_t size, FILE **f,
     if (name && *name) {
         // save to user supplied name
         if (FS_NormalizePathBuffer(temp, name, sizeof(temp)) >= sizeof(temp)) {
-            return -ENAMETOOLONG;
+            return Q_ERR(ENAMETOOLONG);
         }
         FS_CleanupPath(temp);
         if (Q_snprintf(buffer, size, "%s/screenshots/%s%s", fs_gamedir, temp, ext) >= size) {
-            return -ENAMETOOLONG;
+            return Q_ERR(ENAMETOOLONG);
         }
         if (!(*f = fopen(buffer, "wb"))) {
-            return -errno;
+            return Q_ERRNO;
         }
         return 0;
     }
@@ -1138,13 +1138,14 @@ static int create_screenshot(char *buffer, size_t size, FILE **f,
     // find a file name to save it to
     for (i = 0; i < 1000; i++) {
         if (Q_snprintf(buffer, size, "%s/screenshots/quake%03d%s", fs_gamedir, i, ext) >= size) {
-            return -ENAMETOOLONG;
+            return Q_ERR(ENAMETOOLONG);
         }
         if ((*f = Q_fopen(buffer, "wxb"))) {
             return 0;
         }
-        if (errno != EEXIST) {
-            return -errno;
+        ret = Q_ERRNO;
+        if (ret != Q_ERR(EEXIST)) {
+            return ret;
         }
     }
 
@@ -1162,7 +1163,7 @@ static void screenshot_done_cb(void *arg)
     screenshot_t *s = arg;
 
     if (fclose(s->fp) && !s->status)
-        s->status = -errno;
+        s->status = Q_ERRNO;
     Z_Free(s->pixels);
 
     if (s->status < 0) {
@@ -1778,13 +1779,11 @@ qhandle_t R_RegisterImage(const char *name, imagetype_t type,
     } else if (*name == '/' || *name == '\\') {
         len = FS_NormalizePathBuffer(fullname, name + 1, sizeof(fullname));
     } else {
-        len = Q_concat(fullname, sizeof(fullname), "pics/", name, NULL);
-        if (len >= sizeof(fullname)) {
-            err = Q_ERR_NAMETOOLONG;
-            goto fail;
+        len = Q_concat(fullname, sizeof(fullname), "pics/", name);
+        if (len < sizeof(fullname)) {
+            FS_NormalizePath(fullname, fullname);
+            len = COM_DefaultExtension(fullname, ".pcx", sizeof(fullname));
         }
-        FS_NormalizePath(fullname, fullname);
-        len = COM_DefaultExtension(fullname, ".pcx", sizeof(fullname));
     }
 
     if (len >= sizeof(fullname)) {
@@ -1824,7 +1823,7 @@ bool R_GetPicSize(int *w, int *h, qhandle_t pic)
     if (h) {
         *h = image->height;
     }
-    return !!(image->flags & IF_TRANSPARENT);
+    return image->flags & IF_TRANSPARENT;
 }
 
 /*
