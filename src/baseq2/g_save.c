@@ -257,7 +257,7 @@ static const save_field_t levelfields[] = {
     SZ(mapname, MAX_QPATH),
     SZ(nextmap, MAX_QPATH),
 
-    I(intermission_framenum),
+    I(intermissiontime),
     L(changemap),
     I(exitintermission),
     V(intermission_origin),

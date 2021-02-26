@@ -1224,7 +1224,7 @@ void ClientBeginDeathmatch(edict_t *ent)
     // locate ent at a spawn point
     PutClientInServer(ent);
 
-    if (level.intermission_framenum) {
+    if (level.intermissiontime) {
         MoveClientToIntermission(ent);
     } else {
         // send effect
@@ -1279,7 +1279,7 @@ void ClientBegin(edict_t *ent)
         PutClientInServer(ent);
     }
 
-    if (level.intermission_framenum) {
+    if (level.intermissiontime) {
         MoveClientToIntermission(ent);
     } else {
         // send effect if in a multiplayer game
@@ -1528,10 +1528,10 @@ void ClientThink(edict_t *ent, usercmd_t *ucmd)
     level.current_entity = ent;
     client = ent->client;
 
-    if (level.intermission_framenum) {
+    if (level.intermissiontime) {
         client->ps.pmove.pm_type = PM_FREEZE;
         // can exit intermission after five seconds
-        if (level.framenum > level.intermission_framenum + 5.0f * BASE_FRAMERATE
+        if (level.framenum > level.intermissiontime + 5.0f * BASE_FRAMERATE
             && (ucmd->buttons & BUTTON_ANY))
             level.exitintermission = true;
         return;
@@ -1698,7 +1698,7 @@ void ClientBeginServerFrame(edict_t *ent)
     gclient_t   *client;
     int         buttonMask;
 
-    if (level.intermission_framenum)
+    if (level.intermissiontime)
         return;
 
     client = ent->client;

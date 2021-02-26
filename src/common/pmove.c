@@ -18,7 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "shared/shared.h"
 #include "common/pmove.h"
-#include "../speedrun/strafe_helper/strafe_helper.h"
+#include "../src/speedrun/strafe_helper/strafe_helper.h"
 
 #define STEPSIZE    18
 
