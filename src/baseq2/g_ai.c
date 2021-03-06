@@ -122,17 +122,17 @@ void ai_stand(edict_t *self, float dist)
     if (FindTarget(self))
         return;
 
-    if (level.time > self->monsterinfo.pausetime) {
+    if (level.framenum > self->monsterinfo.pause_framenum) {
         self->monsterinfo.walk(self);
         return;
     }
 
-    if (!(self->spawnflags & 1) && (self->monsterinfo.idle) && (level.time > self->monsterinfo.idle_time)) {
-        if (self->monsterinfo.idle_time) {
+    if (!(self->spawnflags & 1) && (self->monsterinfo.idle) && (level.framenum > self->monsterinfo.idle_framenum)) {
+        if (self->monsterinfo.idle_framenum) {
             self->monsterinfo.idle(self);
-            self->monsterinfo.idle_time = level.time + 15 + random() * 15;
+            self->monsterinfo.idle_framenum = level.framenum + (1 + random()) * 15 * BASE_FRAMERATE;
         } else {
-            self->monsterinfo.idle_time = level.time + random() * 15;
+            self->monsterinfo.idle_framenum = level.framenum + random() * 15 * BASE_FRAMERATE;
         }
     }
 }
@@ -153,12 +153,12 @@ void ai_walk(edict_t *self, float dist)
     if (FindTarget(self))
         return;
 
-    if ((self->monsterinfo.search) && (level.time > self->monsterinfo.idle_time)) {
-        if (self->monsterinfo.idle_time) {
+    if ((self->monsterinfo.search) && (level.framenum > self->monsterinfo.idle_framenum)) {
+        if (self->monsterinfo.idle_framenum) {
             self->monsterinfo.search(self);
-            self->monsterinfo.idle_time = level.time + 15 + random() * 15;
+            self->monsterinfo.idle_framenum = level.framenum + (1 + random()) * 15 * BASE_FRAMERATE;
         } else {
-            self->monsterinfo.idle_time = level.time + random() * 15;
+            self->monsterinfo.idle_framenum = level.framenum + random() * 15 * BASE_FRAMERATE;
         }
     }
 }
@@ -337,10 +337,10 @@ void FoundTarget(edict_t *self)
         level.sight_entity->light_level = 128;
     }
 
-    self->show_hostile = level.time + 1;        // wake up other monsters
+    self->show_hostile = level.framenum + 1 * BASE_FRAMERATE;   // wake up other monsters
 
     VectorCopy(self->enemy->s.origin, self->monsterinfo.last_sighting);
-    self->monsterinfo.trail_time = level.time;
+    self->monsterinfo.trail_framenum = level.framenum;
 
     if (!self->combattarget) {
         HuntTarget(self);
@@ -361,7 +361,7 @@ void FoundTarget(edict_t *self)
 
     // clear the targetname, that point is ours!
     self->movetarget->targetname = NULL;
-    self->monsterinfo.pausetime = 0;
+    self->monsterinfo.pause_framenum = 0;
 
     // run for it
     self->monsterinfo.run(self);
@@ -468,7 +468,7 @@ bool FindTarget(edict_t *self)
         }
 
         if (r == RANGE_NEAR) {
-            if (client->show_hostile < level.time && !infront(self, client)) {
+            if (client->show_hostile < level.framenum && !infront(self, client)) {
                 return false;
             }
         } else if (r == RANGE_MID) {
@@ -589,7 +589,7 @@ bool M_CheckAttack(edict_t *self)
     if (!self->monsterinfo.attack)
         return false;
 
-    if (level.time < self->monsterinfo.attack_finished)
+    if (level.framenum < self->monsterinfo.attack_finished)
         return false;
 
     if (enemy_range == RANGE_FAR)
@@ -614,7 +614,7 @@ bool M_CheckAttack(edict_t *self)
 
     if (random() < chance) {
         self->monsterinfo.attack_state = AS_MISSILE;
-        self->monsterinfo.attack_finished = level.time + 2 * random();
+        self->monsterinfo.attack_finished = level.framenum + 2 * random() * BASE_FRAMERATE;
         return true;
     }
 
@@ -713,7 +713,7 @@ bool ai_checkattack(edict_t *self, float dist)
             return false;
 
         if (self->monsterinfo.aiflags & AI_SOUND_TARGET) {
-            if ((level.time - self->enemy->teleport_time) > 5.0f) {
+            if ((level.framenum - self->enemy->last_sound_framenum) > 5.0f * BASE_FRAMERATE) {
                 if (self->goalentity == self->enemy) {
                     if (self->movetarget)
                         self->goalentity = self->movetarget;
@@ -724,7 +724,7 @@ bool ai_checkattack(edict_t *self, float dist)
                 if (self->monsterinfo.aiflags & AI_TEMP_STAND_GROUND)
                     self->monsterinfo.aiflags &= ~(AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
             } else {
-                self->show_hostile = level.time + 1;
+                self->show_hostile = level.framenum + 1 * BASE_FRAMERATE;
                 return false;
             }
         }
@@ -767,24 +767,24 @@ bool ai_checkattack(edict_t *self, float dist)
                 // will just revert to walking with no target and
                 // the monsters will wonder around aimlessly trying
                 // to hunt the world entity
-                self->monsterinfo.pausetime = level.time + 100000000;
+                self->monsterinfo.pause_framenum = INT_MAX;
                 self->monsterinfo.stand(self);
             }
             return true;
         }
     }
 
-    self->show_hostile = level.time + 1;        // wake up other monsters
+    self->show_hostile = level.framenum + 1 * BASE_FRAMERATE;   // wake up other monsters
 
 // check knowledge of enemy
     enemy_vis = visible(self, self->enemy);
     if (enemy_vis) {
-        self->monsterinfo.search_time = level.time + 5;
+        self->monsterinfo.search_framenum = level.framenum + 5 * BASE_FRAMERATE;
         VectorCopy(self->enemy->s.origin, self->monsterinfo.last_sighting);
     }
 
 // look for other coop players here
-//  if (coop && self->monsterinfo.search_time < level.time)
+//  if (coop && self->monsterinfo.search_framenum < level.framenum)
 //  {
 //      if (FindTarget (self))
 //          return true;
@@ -868,7 +868,7 @@ void ai_run(edict_t *self, float dist)
         M_MoveToGoal(self, dist);
         self->monsterinfo.aiflags &= ~AI_LOST_SIGHT;
         VectorCopy(self->enemy->s.origin, self->monsterinfo.last_sighting);
-        self->monsterinfo.trail_time = level.time;
+        self->monsterinfo.trail_framenum = level.framenum;
         return;
     }
 
@@ -879,9 +879,9 @@ void ai_run(edict_t *self, float dist)
             return;
     }
 
-    if ((self->monsterinfo.search_time) && (level.time > (self->monsterinfo.search_time + 20))) {
+    if ((self->monsterinfo.search_framenum) && (level.framenum > (self->monsterinfo.search_framenum + 20 * BASE_FRAMERATE))) {
         M_MoveToGoal(self, dist);
-        self->monsterinfo.search_time = 0;
+        self->monsterinfo.search_framenum = 0;
 //      dprint("search timeout\n");
         return;
     }
@@ -905,7 +905,7 @@ void ai_run(edict_t *self, float dist)
 //      dprint("reached current goal: "); dprint(vtos(self.origin)); dprint(" "); dprint(vtos(self.last_sighting)); dprint(" "); dprint(ftos(vlen(self.origin - self.last_sighting))); dprint("\n");
 
         // give ourself more time since we got this far
-        self->monsterinfo.search_time = level.time + 5;
+        self->monsterinfo.search_framenum = level.framenum + 5 * BASE_FRAMERATE;
 
         if (self->monsterinfo.aiflags & AI_PURSUE_TEMP) {
 //          dprint("was temp goal; retrying original\n");
@@ -922,7 +922,7 @@ void ai_run(edict_t *self, float dist)
 
         if (marker) {
             VectorCopy(marker->s.origin, self->monsterinfo.last_sighting);
-            self->monsterinfo.trail_time = marker->timestamp;
+            self->monsterinfo.trail_framenum = marker->timestamp;
             self->s.angles[YAW] = self->ideal_yaw = marker->s.angles[YAW];
 //          dprint("heading is "); dprint(ftos(self.ideal_yaw)); dprint("\n");
 

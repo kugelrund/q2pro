@@ -33,9 +33,9 @@ void MoveClientToIntermission(edict_t *ent)
     if (deathmatch->value || coop->value)
         ent->client->showscores = true;
     VectorCopy(level.intermission_origin, ent->s.origin);
-    ent->client->ps.pmove.origin[0] = level.intermission_origin[0] * 8;
-    ent->client->ps.pmove.origin[1] = level.intermission_origin[1] * 8;
-    ent->client->ps.pmove.origin[2] = level.intermission_origin[2] * 8;
+    ent->client->ps.pmove.origin[0] = COORD2SHORT(level.intermission_origin[0]);
+    ent->client->ps.pmove.origin[1] = COORD2SHORT(level.intermission_origin[1]);
+    ent->client->ps.pmove.origin[2] = COORD2SHORT(level.intermission_origin[2]);
     VectorCopy(level.intermission_angle, ent->client->ps.viewangles);
     ent->client->ps.pmove.pm_type = PM_FREEZE;
     ent->client->ps.gunindex = 0;
@@ -48,7 +48,7 @@ void MoveClientToIntermission(edict_t *ent)
     ent->client->breather_framenum = 0;
     ent->client->enviro_framenum = 0;
     ent->client->grenade_blew_up = false;
-    ent->client->grenade_time = 0;
+    ent->client->grenade_framenum = 0;
 
     ent->viewheight = 0;
     ent->s.modelindex = 0;
@@ -91,7 +91,7 @@ void BeginIntermission(edict_t *targ)
             respawn(client);
     }
 
-    level.intermissiontime = level.time;
+    level.intermissiontime = level.framenum;
     level.changemap = targ->map;
 
     if (strstr(level.changemap, "*")) {
@@ -410,7 +410,7 @@ void G_SetStats(edict_t *ent)
     //
     // pickup message
     //
-    if (level.time > ent->client->pickup_msg_time) {
+    if (level.framenum > ent->client->pickup_msg_framenum) {
         ent->client->ps.stats[STAT_PICKUP_ICON] = 0;
         ent->client->ps.stats[STAT_PICKUP_STRING] = 0;
     }

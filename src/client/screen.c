@@ -19,7 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "client.h"
 #include "speedrun/timer.h"
-#include "../speedrun/strafe_helper/strafe_helper.h"
+#include "../src/speedrun/strafe_helper/strafe_helper.h"
 
 #define STAT_PICS       11
 #define STAT_MINUS      (STAT_PICS - 1)  // num frame for '-' stats digit
@@ -544,11 +544,8 @@ static void SCR_Color_g(genctx_t *ctx)
 {
     int color;
 
-    for (color = 0; color < 10; color++) {
-        if (!Prompt_AddMatch(ctx, colorNames[color])) {
-            break;
-        }
-    }
+    for (color = 0; color < 10; color++)
+        Prompt_AddMatch(ctx, colorNames[color]);
 }
 
 static void SCR_Draw_c(genctx_t *ctx, int argnum)
@@ -656,9 +653,7 @@ static void SCR_Draw_g(genctx_t *ctx)
 
     FOR_EACH_DRAWOBJ(obj) {
         s = obj->macro ? obj->macro->name : obj->cvar->name;
-        if (!Prompt_AddMatch(ctx, s)) {
-            break;
-        }
+        Prompt_AddMatch(ctx, s);
     }
 }
 
@@ -1502,8 +1497,7 @@ static void SCR_DrawInventory(void)
     for (i = top; i < num && i < top + DISPLAY_ITEMS; i++) {
         item = index[i];
         // search for a binding
-        Q_concat(string, sizeof(string),
-                 "use ", cl.configstrings[CS_ITEMS + item], NULL);
+        Q_concat(string, sizeof(string), "use ", cl.configstrings[CS_ITEMS + item]);
         bind = Key_GetBinding(string);
 
         Q_snprintf(string, sizeof(string), "%6s %3i %s",

@@ -100,7 +100,7 @@ static void BuildName(const file_info_t *info, char **cache)
         }
         *cache = s;
     } else {
-        Q_concat(buffer, sizeof(buffer), m_demos.browse, "/", info->name, NULL);
+        Q_concat(buffer, sizeof(buffer), m_demos.browse, "/", info->name);
         CL_GetDemoInfo(buffer, &demo);
         if (demo.mvd) {
             strcpy(demo.pov, DEMO_MVD_POV);
@@ -161,12 +161,10 @@ static void BuildDir(const char *name, int type)
 static char *LoadCache(void **list)
 {
     char buffer[MAX_OSPATH], *cache;
-    int i;
-    size_t len;
+    int i, len;
     uint8_t hash[16];
 
-    len = Q_concat(buffer, sizeof(buffer), m_demos.browse, "/" COM_DEMOCACHE_NAME, NULL);
-    if (len >= sizeof(buffer)) {
+    if (Q_concat(buffer, sizeof(buffer), m_demos.browse, "/" COM_DEMOCACHE_NAME) >= sizeof(buffer)) {
         return NULL;
     }
     len = FS_LoadFileEx(buffer, (void **)&cache, FS_TYPE_REAL | FS_PATH_GAME, TAG_FILESYSTEM);
@@ -206,14 +204,11 @@ static void WriteCache(void)
     int i;
     char *map, *pov;
     demoEntry_t *e;
-    size_t len;
 
     if (m_demos.list.numItems == m_demos.numDirs) {
         return;
     }
-
-    len = Q_concat(buffer, sizeof(buffer), m_demos.browse, "/" COM_DEMOCACHE_NAME, NULL);
-    if (len >= sizeof(buffer)) {
+    if (Q_concat(buffer, sizeof(buffer), m_demos.browse, "/" COM_DEMOCACHE_NAME) >= sizeof(buffer)) {
         return;
     }
     FS_FOpenFile(buffer, &f, FS_MODE_WRITE);
@@ -410,6 +405,17 @@ static menuSound_t LeaveDirectory(void)
     return QMS_OUT;
 }
 
+static bool FileNameOk(const char *s)
+{
+    while (*s) {
+        if (*s == '\n' || *s == '"' || *s == ';') {
+            return false;
+        }
+        s++;
+    }
+    return true;
+}
+
 static menuSound_t EnterDirectory(demoEntry_t *e)
 {
     size_t  baselen, len;
@@ -417,6 +423,9 @@ static menuSound_t EnterDirectory(demoEntry_t *e)
     baselen = strlen(m_demos.browse);
     len = strlen(e->name);
     if (baselen + 1 + len >= sizeof(m_demos.browse)) {
+        return QMS_BEEP;
+    }
+    if (!FileNameOk(e->name)) {
         return QMS_BEEP;
     }
 
@@ -435,17 +444,13 @@ static menuSound_t EnterDirectory(demoEntry_t *e)
 
 static menuSound_t PlayDemo(demoEntry_t *e)
 {
-    char    buffer[MAX_STRING_CHARS];
-    size_t  len;
-
-    len = Q_snprintf(buffer, sizeof(buffer), "demo \"%s/%s\"\n",
-                     strcmp(m_demos.browse, "/") ? m_demos.browse : "",
-                     e->name);
-    if (len >= sizeof(buffer)) {
+    if (strlen(m_demos.browse) + 1 + strlen(e->name) >= sizeof(m_demos.browse)) {
         return QMS_BEEP;
     }
-
-    Cbuf_AddText(&cmd_buffer, buffer);
+    if (!FileNameOk(e->name)) {
+        return QMS_BEEP;
+    }
+    Cbuf_AddText(&cmd_buffer, va("demo \"%s/%s\"\n", m_demos.browse, e->name));
     return QMS_SILENT;
 }
 

@@ -302,7 +302,7 @@ typedef struct {
     char        nextmap[MAX_QPATH];     // go here when fraglimit is hit
 
     // intermission state
-    float       intermissiontime;       // time the intermission was started
+    int         intermission_framenum;  // time the intermission was started
     char        *changemap;
     int         exitintermission;
     vec3_t      intermission_origin;
@@ -420,16 +420,16 @@ typedef struct {
     void        (*sight)(edict_t *self, edict_t *other);
     bool        (*checkattack)(edict_t *self);
 
-    float       pausetime;
-    float       attack_finished;
+    int         pause_framenum;
+    int         attack_finished;
 
     vec3_t      saved_goal;
-    float       search_time;
-    float       trail_time;
+    int         search_framenum;
+    int         trail_framenum;
     vec3_t      last_sighting;
     int         attack_state;
     int         lefty;
-    float       idle_time;
+    int         idle_framenum;
     int         linkcount;
 
     int         power_armor_type;
@@ -911,7 +911,7 @@ struct gclient_s {
     vec3_t      oldviewangles;
     vec3_t      oldvelocity;
 
-    float       next_drown_time;
+    int         next_drown_framenum;
     int         old_waterlevel;
     int         breather_sound;
 
@@ -930,17 +930,17 @@ struct gclient_s {
     int         enviro_framenum;
 
     bool        grenade_blew_up;
-    float       grenade_time;
+    int         grenade_framenum;
     int         silencer_shots;
     int         weapon_sound;
 
-    float       pickup_msg_time;
+    int         pickup_msg_framenum;
 
     float       flood_locktill;     // locked from talking
     float       flood_when[10];     // when messages were said
     int         flood_whenhead;     // head pointer for when said
 
-    float       respawn_time;       // can respawn when time > this
+    int         respawn_framenum;   // can respawn when time > this
 
     edict_t     *chase_target;      // player we are chasing
     bool        update_chase;       // need to update chase info?
@@ -992,7 +992,7 @@ struct edict_s {
     char        *classname;
     int         spawnflags;
 
-    float       timestamp;
+    int         timestamp;
 
     float       angle;          // set in qe3, -1 = up, -2 = down
     char        *target;
@@ -1011,7 +1011,7 @@ struct edict_s {
     vec3_t      velocity;
     vec3_t      avelocity;
     int         mass;
-    float       air_finished;
+    int         air_finished_framenum;
     float       gravity;        // per entity gravity multiplier (1.0 is normal)
                                 // use for lowgrav artifact, flares
 
@@ -1020,7 +1020,7 @@ struct edict_s {
     float       yaw_speed;
     float       ideal_yaw;
 
-    float       nextthink;
+    int         nextthink;
     void        (*prethink)(edict_t *ent);
     void        (*think)(edict_t *self);
     void        (*blocked)(edict_t *self, edict_t *other);         // move to moveinfo?
@@ -1029,19 +1029,19 @@ struct edict_s {
     void        (*pain)(edict_t *self, edict_t *other, float kick, int damage);
     void        (*die)(edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, vec3_t point);
 
-    float       touch_debounce_time;        // are all these legit?  do we need more/less of them?
-    float       pain_debounce_time;
-    float       damage_debounce_time;
-    float       fly_sound_debounce_time;    // move to clientinfo
-    float       last_move_time;
+    int         touch_debounce_framenum;        // are all these legit?  do we need more/less of them?
+    int         pain_debounce_framenum;
+    int         damage_debounce_framenum;
+    int         fly_sound_debounce_framenum;    // move to clientinfo
+    int         last_move_framenum;
 
     int         health;
     int         max_health;
     int         gib_health;
     int         deadflag;
-    float       show_hostile;
+    int         show_hostile;
 
-    float       powerarmor_time;
+    int         powerarmor_framenum;
 
     char        *map;           // target_changelevel
 
@@ -1075,7 +1075,7 @@ struct edict_s {
     float       delay;          // before firing targets
     float       random;
 
-    float       teleport_time;
+    int         last_sound_framenum;
 
     int         watertype;
     int         waterlevel;

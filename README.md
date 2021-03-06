@@ -24,5 +24,23 @@ Q2PRO Speed
 Q2PRO Speed extends Q2PRO with speedrun functionality, including:
 
 * Proper ingame timer for speedruns
-* Support for mission packs, implemented by Jonathan Richman, aka Qualx
+* Support for Ground Zero (rogue) and The Reckoning (xatrix) mission packs, implemented by Jonathan Richman, aka Qualx
 * Co-Op bugfixes
+
+Follow these steps, alongside Q2PRO Speed source directory, to check out
+and build Q2PRO Speed for Windows using MinGW-w64:
+
+    curl -s https://api.github.com/repos/skullernet/q2pro-mgw-sdk/releases/latest \
+    | grep "browser_download_url.*q2pro-mgw-sdk*\.tar\.gz" \
+    | cut -d ":" -f 2,3 \
+    | tr -d \" \
+    | wget -qi -
+    tarball="$(find . -name "*q2pro-mgw-sdk*.tar.gz")"
+    tar -xzf $tarball
+    git clone --recurse-submodules -j8 https://github.com/kugelrund/q2pro-speed.git q2pro-speed.git
+    cd q2pro-speed.git
+    cp ../q2pro-mgw-sdk*/config .config
+    # review .config
+    make strip
+
+Before typing ‘make’ you may need to adjust the build time configuration file (‘.config’), especially if your compiler name does not have ‘i686-w64-mingw32-’ prefix. For more information consult the Q2PRO INSTALL file.

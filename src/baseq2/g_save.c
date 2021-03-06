@@ -91,7 +91,7 @@ static const save_field_t entityfields[] = {
     L(classname),
     I(spawnflags),
 
-    F(timestamp),
+    I(timestamp),
 
     L(target),
     L(targetname),
@@ -112,7 +112,7 @@ static const save_field_t entityfields[] = {
     V(velocity),
     V(avelocity),
     I(mass),
-    F(air_finished),
+    I(air_finished_framenum),
     F(gravity),
 
     E(goalentity),
@@ -120,7 +120,7 @@ static const save_field_t entityfields[] = {
     F(yaw_speed),
     F(ideal_yaw),
 
-    F(nextthink),
+    I(nextthink),
     P(prethink, P_prethink),
     P(think, P_think),
     P(blocked, P_blocked),
@@ -129,19 +129,19 @@ static const save_field_t entityfields[] = {
     P(pain, P_pain),
     P(die, P_die),
 
-    F(touch_debounce_time),
-    F(pain_debounce_time),
-    F(damage_debounce_time),
-    F(fly_sound_debounce_time),
-    F(last_move_time),
+    I(touch_debounce_framenum),
+    I(pain_debounce_framenum),
+    I(damage_debounce_framenum),
+    I(fly_sound_debounce_framenum),
+    I(last_move_framenum),
 
     I(health),
     I(max_health),
     I(gib_health),
     I(deadflag),
-    F(show_hostile),
+    I(show_hostile),
 
-    F(powerarmor_time),
+    I(powerarmor_framenum),
 
     L(map),
 
@@ -174,7 +174,7 @@ static const save_field_t entityfields[] = {
     F(delay),
     F(random),
 
-    F(teleport_time),
+    I(last_sound_framenum),
 
     I(watertype),
     I(waterlevel),
@@ -229,16 +229,16 @@ static const save_field_t entityfields[] = {
     P(monsterinfo.sight, P_monsterinfo_sight),
     P(monsterinfo.checkattack, P_monsterinfo_checkattack),
 
-    F(monsterinfo.pausetime),
-    F(monsterinfo.attack_finished),
+    I(monsterinfo.pause_framenum),
+    I(monsterinfo.attack_finished),
 
     V(monsterinfo.saved_goal),
-    F(monsterinfo.search_time),
-    F(monsterinfo.trail_time),
+    I(monsterinfo.search_framenum),
+    I(monsterinfo.trail_framenum),
     V(monsterinfo.last_sighting),
     I(monsterinfo.attack_state),
     I(monsterinfo.lefty),
-    F(monsterinfo.idle_time),
+    I(monsterinfo.idle_framenum),
     I(monsterinfo.linkcount),
 
     I(monsterinfo.power_armor_type),
@@ -257,7 +257,7 @@ static const save_field_t levelfields[] = {
     SZ(mapname, MAX_QPATH),
     SZ(nextmap, MAX_QPATH),
 
-    F(intermissiontime),
+    I(intermissiontime),
     L(changemap),
     I(exitintermission),
     V(intermission_origin),
@@ -384,7 +384,7 @@ static const save_field_t clientfields[] = {
     V(oldviewangles),
     V(oldvelocity),
 
-    F(next_drown_time),
+    I(next_drown_framenum),
     I(old_waterlevel),
     I(breather_sound),
 
@@ -402,11 +402,11 @@ static const save_field_t clientfields[] = {
     I(enviro_framenum),
 
     O(grenade_blew_up),
-    F(grenade_time),
+    I(grenade_framenum),
     I(silencer_shots),
     I(weapon_sound),
 
-    F(pickup_msg_time),
+    I(pickup_msg_framenum),
 
     {0}
 #undef _OFS
@@ -435,6 +435,7 @@ static const save_field_t gamefields[] = {
 static void write_data(void *buf, size_t len, FILE *f)
 {
     if (fwrite(buf, 1, len, f) != len) {
+        fclose(f);
         gi.error("%s: couldn't write %"PRIz" bytes", __func__, len);
     }
 }
@@ -488,11 +489,13 @@ static void write_index(FILE *f, void *p, size_t size, void *start, int max_inde
     }
 
     if (p < start || (byte *)p > (byte *)start + max_index * size) {
+        fclose(f);
         gi.error("%s: pointer out of range: %p", __func__, p);
     }
 
     diff = (byte *)p - (byte *)start;
     if (diff % size) {
+        fclose(f);
         gi.error("%s: misaligned pointer: %p", __func__, p);
     }
     write_int(f, (int)(diff / size));
@@ -515,6 +518,7 @@ static void write_pointer(FILE *f, void *p, ptr_type_t type)
         }
     }
 
+    fclose(f);
     gi.error("%s: unknown pointer: %p", __func__, p);
 }
 
@@ -589,6 +593,7 @@ static void write_fields(FILE *f, const save_field_t *fields, void *base)
 static void read_data(void *buf, size_t len, FILE *f)
 {
     if (fread(buf, 1, len, f) != len) {
+        fclose(f);
         gi.error("%s: couldn't read %"PRIz" bytes", __func__, len);
     }
 }
@@ -635,6 +640,7 @@ static char *read_string(FILE *f)
     }
 
     if (len < 0 || len > 65536) {
+        fclose(f);
         gi.error("%s: bad length", __func__);
     }
 
@@ -651,6 +657,7 @@ static void read_zstring(FILE *f, char *s, size_t size)
 
     len = read_int(f);
     if (len < 0 || len >= size) {
+        fclose(f);
         gi.error("%s: bad length", __func__);
     }
 
@@ -676,6 +683,7 @@ static void *read_index(FILE *f, size_t size, void *start, int max_index)
     }
 
     if (index < 0 || index > max_index) {
+        fclose(f);
         gi.error("%s: bad index", __func__);
     }
 
@@ -694,11 +702,13 @@ static void *read_pointer(FILE *f, ptr_type_t type)
     }
 
     if (index < 0 || index >= num_save_ptrs) {
+        fclose(f);
         gi.error("%s: bad index", __func__);
     }
 
     ptr = &save_ptrs[index];
     if (ptr->type != type) {
+        fclose(f);
         gi.error("%s: type mismatch", __func__);
     }
 
@@ -777,7 +787,7 @@ static void read_fields(FILE *f, const save_field_t *fields, void *base)
 
 #define SAVE_MAGIC1     (('1'<<24)|('V'<<16)|('S'<<8)|'S')  // "SSV1"
 #define SAVE_MAGIC2     (('1'<<24)|('V'<<16)|('A'<<8)|'S')  // "SAV1"
-#define SAVE_VERSION    2
+#define SAVE_VERSION    7
 
 /*
 ============
@@ -840,7 +850,7 @@ void ReadGame(const char *filename)
     i = read_int(f);
     if (i != SAVE_VERSION) {
         fclose(f);
-        gi.error("Savegame from an older version");
+        gi.error("Savegame from different version (got %d, expected %d)", i, SAVE_VERSION);
     }
 
     read_fields(f, gamefields, &game);
@@ -951,7 +961,7 @@ void ReadLevel(const char *filename)
     i = read_int(f);
     if (i != SAVE_VERSION) {
         fclose(f);
-        gi.error("Savegame from an older version");
+        gi.error("Savegame from different version (got %d, expected %d)", i, SAVE_VERSION);
     }
 
     // load the level locals
@@ -963,6 +973,7 @@ void ReadLevel(const char *filename)
         if (entnum == -1)
             break;
         if (entnum < 0 || entnum >= game.maxentities) {
+            fclose(f);
             gi.error("%s: bad entity number", __func__);
         }
         if (entnum >= globals.num_edicts)
@@ -997,7 +1008,7 @@ void ReadLevel(const char *filename)
         // fire any cross-level triggers
         if (ent->classname)
             if (strcmp(ent->classname, "target_crosslevel_target") == 0)
-                ent->nextthink = level.time + ent->delay;
+                ent->nextthink = level.framenum + ent->delay * BASE_FRAMERATE;
 
         if (ent->think == func_clock_think || ent->use == func_clock_use) {
             char *msg = ent->message;

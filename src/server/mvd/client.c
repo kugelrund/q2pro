@@ -441,7 +441,7 @@ int MVD_GetDemoPercent(bool *paused, int *framenum)
         return -1;
 
     if (paused)
-        *paused = mvd->state == MVD_WAITING ? true : false;
+        *paused = mvd->state == MVD_WAITING;
     if (framenum)
         *framenum = mvd->framenum;
 
@@ -747,12 +747,9 @@ static void demo_play_next(gtv_t *gtv, string_entry_t *entry)
     // set channel address
     Q_strlcpy(gtv->address, COM_SkipPath(entry->string), sizeof(gtv->address));
 
-    len = FS_Length(gtv->demoplayback);
-    ret = FS_Tell(gtv->demoplayback);
-    if (len > 0 && ret > 0) {
-        gtv->demosize = len;
-        gtv->demopos = ret;
-    } else {
+    gtv->demosize = FS_Length(gtv->demoplayback);
+    gtv->demopos = FS_Tell(gtv->demoplayback);
+    if (gtv->demosize < 0 || gtv->demopos < 0) {
         gtv->demosize = gtv->demopos = 0;
     }
 
@@ -1360,7 +1357,7 @@ static void inflate_more(gtv_t *gtv)
         gtv->z_act = false;
         break;
     default:
-        gtv_destroyf(gtv, "inflate() failed: %s", gtv->z_str.msg);
+        gtv_destroyf(gtv, "inflate() failed with error %d", ret);
     }
 }
 #endif

@@ -20,7 +20,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 void InitTrigger(edict_t *self)
 {
-    if (!VectorCompare(self->s.angles, vec3_origin))
+    if (!VectorEmpty(self->s.angles))
         G_SetMovedir(self->s.angles, self->movedir);
 
     self->solid = SOLID_TRIGGER;
@@ -49,12 +49,12 @@ void multi_trigger(edict_t *ent)
 
     if (ent->wait > 0) {
         ent->think = multi_wait;
-        ent->nextthink = level.time + ent->wait;
+        ent->nextthink = level.framenum + ent->wait * BASE_FRAMERATE;
     } else {
         // we can't just remove (self) here, because this is a touch function
         // called while looping through area links...
         ent->touch = NULL;
-        ent->nextthink = level.time + FRAMETIME;
+        ent->nextthink = level.framenum + 1;
         ent->think = G_FreeEdict;
     }
 }
@@ -76,7 +76,7 @@ void Touch_Multi(edict_t *self, edict_t *other, cplane_t *plane, csurface_t *sur
     } else
         return;
 
-    if (!VectorCompare(self->movedir, vec3_origin)) {
+    if (!VectorEmpty(self->movedir)) {
         vec3_t  forward;
 
         AngleVectors(other->s.angles, forward, NULL, NULL);
@@ -130,7 +130,7 @@ void SP_trigger_multiple(edict_t *ent)
         ent->use = Use_Multi;
     }
 
-    if (!VectorCompare(ent->s.angles, vec3_origin))
+    if (!VectorEmpty(ent->s.angles))
         G_SetMovedir(ent->s.angles, ent->movedir);
 
     gi.setmodel(ent, ent->model);
@@ -207,9 +207,9 @@ void trigger_key_use(edict_t *self, edict_t *other, edict_t *activator)
 
     index = ITEM_INDEX(self->item);
     if (!activator->client->pers.inventory[index]) {
-        if (level.time < self->touch_debounce_time)
+        if (level.framenum < self->touch_debounce_framenum)
             return;
-        self->touch_debounce_time = level.time + 5.0f;
+        self->touch_debounce_framenum = level.framenum + 5.0f * BASE_FRAMERATE;
         gi.centerprintf(activator, "You need the %s", self->item->pickup_name);
         gi.sound(activator, CHAN_AUTO, gi.soundindex("misc/keytry.wav"), 1, ATTN_NORM, 0);
         return;
@@ -372,8 +372,8 @@ void trigger_push_touch(edict_t *self, edict_t *other, cplane_t *plane, csurface
         if (other->client) {
             // don't take falling damage immediately from this
             VectorCopy(other->velocity, other->client->oldvelocity);
-            if (other->fly_sound_debounce_time < level.time) {
-                other->fly_sound_debounce_time = level.time + 1.5f;
+            if (other->fly_sound_debounce_framenum < level.framenum) {
+                other->fly_sound_debounce_framenum = level.framenum + 1.5f * BASE_FRAMERATE;
                 gi.sound(other, CHAN_AUTO, windsound, 1, ATTN_NORM, 0);
             }
         }
@@ -438,13 +438,13 @@ void hurt_touch(edict_t *self, edict_t *other, cplane_t *plane, csurface_t *surf
     if (!other->takedamage)
         return;
 
-    if (self->timestamp > level.time)
+    if (self->timestamp > level.framenum)
         return;
 
     if (self->spawnflags & 16)
-        self->timestamp = level.time + 1;
+        self->timestamp = level.framenum + 1 * BASE_FRAMERATE;
     else
-        self->timestamp = level.time + FRAMETIME;
+        self->timestamp = level.framenum + 1;
 
     if (!(self->spawnflags & 4)) {
         if ((level.framenum % 10) == 0)

@@ -123,9 +123,9 @@ void P_DamageFeedback(edict_t *player)
         count = 10; // always make a visible effect
 
     // play an apropriate pain sound
-    if ((level.time > player->pain_debounce_time) && !(player->flags & FL_GODMODE) && (client->invincible_framenum <= level.framenum)) {
+    if ((level.framenum > player->pain_debounce_framenum) && !(player->flags & FL_GODMODE) && (client->invincible_framenum <= level.framenum)) {
         r = 1 + (Q_rand() & 1);
-        player->pain_debounce_time = level.time + 0.7f;
+        player->pain_debounce_framenum = level.framenum + 0.7f * BASE_FRAMERATE;
         if (player->health < 25)
             l = 25;
         else if (player->health < 50)
@@ -524,7 +524,7 @@ void P_FallingDamage(edict_t *ent)
             else
                 ent->s.event = EV_FALL;
         }
-        ent->pain_debounce_time = level.time;   // no normal pain sound
+        ent->pain_debounce_framenum = level.framenum;   // no normal pain sound
         damage = (delta - 30) / 2;
         if (damage < 1)
             damage = 1;
@@ -552,7 +552,7 @@ void P_WorldEffects(void)
     int         waterlevel, old_waterlevel;
 
     if (current_player->movetype == MOVETYPE_NOCLIP) {
-        current_player->air_finished = level.time + 12; // don't need air
+        current_player->air_finished_framenum = level.framenum + 12 * BASE_FRAMERATE; // don't need air
         return;
     }
 
@@ -577,7 +577,7 @@ void P_WorldEffects(void)
         current_player->flags |= FL_INWATER;
 
         // clear damage_debounce, so the pain sound will play immediately
-        current_player->damage_debounce_time = level.time - 1;
+        current_player->damage_debounce_framenum = level.framenum - 1 * BASE_FRAMERATE;
     }
 
     //
@@ -600,11 +600,11 @@ void P_WorldEffects(void)
     // check for head just coming out of water
     //
     if (old_waterlevel == 3 && waterlevel != 3) {
-        if (current_player->air_finished < level.time) {
+        if (current_player->air_finished_framenum < level.framenum) {
             // gasp for air
             gi.sound(current_player, CHAN_VOICE, gi.soundindex("player/gasp1.wav"), 1, ATTN_NORM, 0);
             PlayerNoise(current_player, current_player->s.origin, PNOISE_SELF);
-        } else  if (current_player->air_finished < level.time + 11) {
+        } else  if (current_player->air_finished_framenum < level.framenum + 11 * BASE_FRAMERATE) {
             // just break surface
             gi.sound(current_player, CHAN_VOICE, gi.soundindex("player/gasp2.wav"), 1, ATTN_NORM, 0);
         }
@@ -616,7 +616,7 @@ void P_WorldEffects(void)
     if (waterlevel == 3) {
         // breather or envirosuit give air
         if (breather || envirosuit) {
-            current_player->air_finished = level.time + 10;
+            current_player->air_finished_framenum = level.framenum + 10 * BASE_FRAMERATE;
 
             if (((int)(current_client->breather_framenum - level.framenum) % 25) == 0) {
                 if (!current_client->breather_sound)
@@ -630,11 +630,11 @@ void P_WorldEffects(void)
         }
 
         // if out of air, start drowning
-        if (current_player->air_finished < level.time) {
+        if (current_player->air_finished_framenum < level.framenum) {
             // drown!
-            if (current_player->client->next_drown_time < level.time
+            if (current_player->client->next_drown_framenum < level.framenum
                 && current_player->health > 0) {
-                current_player->client->next_drown_time = level.time + 1;
+                current_player->client->next_drown_framenum = level.framenum + 1 * BASE_FRAMERATE;
 
                 // take more damage the longer underwater
                 current_player->dmg += 2;
@@ -649,13 +649,13 @@ void P_WorldEffects(void)
                 else
                     gi.sound(current_player, CHAN_VOICE, gi.soundindex("*gurp2.wav"), 1, ATTN_NORM, 0);
 
-                current_player->pain_debounce_time = level.time;
+                current_player->pain_debounce_framenum = level.framenum;
 
                 T_Damage(current_player, world, world, vec3_origin, current_player->s.origin, vec3_origin, current_player->dmg, 0, DAMAGE_NO_ARMOR, MOD_WATER);
             }
         }
     } else {
-        current_player->air_finished = level.time + 12;
+        current_player->air_finished_framenum = level.framenum + 12 * BASE_FRAMERATE;
         current_player->dmg = 2;
     }
 
@@ -665,13 +665,13 @@ void P_WorldEffects(void)
     if (waterlevel && (current_player->watertype & (CONTENTS_LAVA | CONTENTS_SLIME))) {
         if (current_player->watertype & CONTENTS_LAVA) {
             if (current_player->health > 0
-                && current_player->pain_debounce_time <= level.time
+                && current_player->pain_debounce_framenum <= level.framenum
                 && current_client->invincible_framenum < level.framenum) {
                 if (Q_rand() & 1)
                     gi.sound(current_player, CHAN_VOICE, gi.soundindex("player/burn1.wav"), 1, ATTN_NORM, 0);
                 else
                     gi.sound(current_player, CHAN_VOICE, gi.soundindex("player/burn2.wav"), 1, ATTN_NORM, 0);
-                current_player->pain_debounce_time = level.time + 1;
+                current_player->pain_debounce_framenum = level.framenum + 1 * BASE_FRAMERATE;
             }
 
             if (envirosuit) // take 1/3 damage with envirosuit
@@ -706,7 +706,7 @@ void G_SetClientEffects(edict_t *ent)
     if (ent->health <= 0 || level.intermissiontime)
         return;
 
-    if (ent->powerarmor_time > level.time) {
+    if (ent->powerarmor_framenum > level.framenum) {
         pa_type = PowerArmorType(ent);
         if (pa_type == POWER_ARMOR_SCREEN) {
             ent->s.effects |= EF_POWERSCREEN;
@@ -902,8 +902,8 @@ void ClientEndServerFrame(edict_t *ent)
     // behind the body position when pushed -- "sinking into plats"
     //
     for (i = 0 ; i < 3 ; i++) {
-        current_client->ps.pmove.origin[i] = ent->s.origin[i] * 8.0f;
-        current_client->ps.pmove.velocity[i] = ent->velocity[i] * 8.0f;
+        current_client->ps.pmove.origin[i] = COORD2SHORT(ent->s.origin[i]);
+        current_client->ps.pmove.velocity[i] = COORD2SHORT(ent->velocity[i]);
     }
 
     //
