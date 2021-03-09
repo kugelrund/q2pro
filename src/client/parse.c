@@ -309,7 +309,7 @@ static void CL_ParseFrame(int extrabits)
     SHOWNET(2, "%3"PRIz":playerinfo\n", msg_read.readcount - 1);
 
     // parse playerstate
-    bits = MSG_ReadShort();
+    bits = MSG_ReadWord();
     if (cls.serverProtocol > PROTOCOL_VERSION_DEFAULT) {
         MSG_ParseDeltaPlayerstate_Enhanced(from, &frame.ps, bits, extraflags);
 #ifdef _DEBUG
@@ -480,7 +480,6 @@ static void CL_ParseServerData(void)
 {
     char    levelname[MAX_QPATH];
     int     i, protocol, attractloop q_unused;
-    size_t  len;
 
     Cbuf_Execute(&cl_cmdbuf);          // make sure any stuffed commands are done
 
@@ -510,8 +509,7 @@ static void CL_ParseServerData(void)
     }
 
     // game directory
-    len = MSG_ReadString(cl.gamedir, sizeof(cl.gamedir));
-    if (len >= sizeof(cl.gamedir)) {
+    if (MSG_ReadString(cl.gamedir, sizeof(cl.gamedir)) >= sizeof(cl.gamedir)) {
         Com_Error(ERR_DROP, "Oversize gamedir string");
     }
 
@@ -1025,7 +1023,7 @@ static void CL_ParseInventory(void)
 
 static void CL_ParseDownload(int cmd)
 {
-    int size, percent, compressed;
+    int size, percent, decompressed_size;
     byte *data;
 
     if (!cls.download.temp[0]) {
@@ -1036,19 +1034,24 @@ static void CL_ParseDownload(int cmd)
     size = MSG_ReadShort();
     percent = MSG_ReadByte();
     if (size == -1) {
-        CL_HandleDownload(NULL, size, percent, false);
+        CL_HandleDownload(NULL, size, percent, 0);
         return;
     }
 
-    // read optional uncompressed packet size
+    // read optional decompressed packet size
     if (cmd == svc_zdownload) {
+#if USE_ZLIB
         if (cls.serverProtocol == PROTOCOL_VERSION_R1Q2) {
-            compressed = MSG_ReadShort();
+            decompressed_size = MSG_ReadShort();
         } else {
-            compressed = -1;
+            decompressed_size = -1;
         }
+#else
+        Com_Error(ERR_DROP, "Compressed server packet received, "
+                  "but no zlib support linked in.");
+#endif
     } else {
-        compressed = 0;
+        decompressed_size = 0;
     }
 
     if (size < 0) {
@@ -1062,7 +1065,7 @@ static void CL_ParseDownload(int cmd)
     data = msg_read.data + msg_read.readcount;
     msg_read.readcount += size;
 
-    CL_HandleDownload(data, size, percent, compressed);
+    CL_HandleDownload(data, size, percent, decompressed_size);
 }
 
 static void CL_ParseZPacket(void)
@@ -1070,7 +1073,7 @@ static void CL_ParseZPacket(void)
 #if USE_ZLIB
     sizebuf_t   temp;
     byte        buffer[MAX_MSGLEN];
-    int         inlen, outlen;
+    int         ret, inlen, outlen;
 
     if (msg_read.data != msg_read_buffer) {
         Com_Error(ERR_DROP, "%s: recursively entered", __func__);
@@ -1093,8 +1096,9 @@ static void CL_ParseZPacket(void)
     cls.z.avail_in = (uInt)inlen;
     cls.z.next_out = buffer;
     cls.z.avail_out = (uInt)outlen;
-    if (inflate(&cls.z, Z_FINISH) != Z_STREAM_END) {
-        Com_Error(ERR_DROP, "%s: inflate() failed: %s", __func__, cls.z.msg);
+    ret = inflate(&cls.z, Z_FINISH);
+    if (ret != Z_STREAM_END) {
+        Com_Error(ERR_DROP, "%s: inflate() failed with error %d", __func__, ret);
     }
 
     msg_read.readcount += inlen;

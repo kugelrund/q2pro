@@ -753,10 +753,10 @@ LOAD(EntString)
 
 typedef struct {
     int (*load)(bsp_t *, void *, size_t);
-    unsigned lump;
-    size_t disksize;
-    size_t memsize;
-    size_t maxcount;
+    uint8_t lump;
+    uint8_t disksize;
+    uint16_t memsize;
+    uint32_t maxcount;
 } lump_info_t;
 
 #define L(func, lump, disk_t, mem_t) \
@@ -1031,7 +1031,7 @@ int BSP_Load(const char *name, bsp_t **bsp_p)
     Hunk_Begin(&bsp->hunk, memsize + 4096);
 
     // calculate the checksum
-    bsp->checksum = LittleLong(Com_BlockChecksum(buf, filelen));
+    bsp->checksum = Com_BlockChecksum(buf, filelen);
 
     // load all lumps
     for (info = bsp_lumps; info->load; info++) {
@@ -1222,7 +1222,7 @@ byte *BSP_ClusterVis(bsp_t *bsp, byte *mask, int cluster, int vis)
         }
         c = in[1];
         in += 2;
-        if (out + c > out_end) {
+        if (c > out_end - out) {
 overrun:
             c = out_end - out;
         }

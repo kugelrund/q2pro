@@ -87,7 +87,7 @@ bool IF_KeyEvent(inputField_t *field, int key)
         if (field->text[field->cursorPos]) {
             memmove(field->text + field->cursorPos,
                     field->text + field->cursorPos + 1,
-                    sizeof(field->text) - field->cursorPos);
+                    sizeof(field->text) - field->cursorPos - 1);
         }
         return true;
     }
@@ -227,6 +227,7 @@ bool IF_CharEvent(inputField_t *field, int key)
             field->text + field->cursorPos,
             sizeof(field->text) - field->cursorPos - 1);
     field->text[field->cursorPos++] = key;
+    field->text[field->maxChars] = 0;
 
     return true;
 }

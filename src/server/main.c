@@ -22,18 +22,25 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 pmoveParams_t   sv_pmp;
 
-LIST_DECL(sv_masterlist);   // address of group servers
+master_t    sv_masters[MAX_MASTERS];   // address of group servers
+
 LIST_DECL(sv_banlist);
 LIST_DECL(sv_blacklist);
 LIST_DECL(sv_cmdlist_connect);
 LIST_DECL(sv_cmdlist_begin);
+LIST_DECL(sv_lrconlist);
 LIST_DECL(sv_filterlist);
+LIST_DECL(sv_cvarbanlist);
+LIST_DECL(sv_infobanlist);
 LIST_DECL(sv_clientlist);   // linked list of non-free clients
 
 client_t    *sv_client;         // current client
 edict_t     *sv_player;         // current client edict
 
 cvar_t  *sv_enforcetime;
+cvar_t  *sv_timescale_time;
+cvar_t  *sv_timescale_warn;
+cvar_t  *sv_timescale_kick;
 cvar_t  *sv_allow_nodelta;
 #if USE_FPS
 cvar_t  *sv_fps;
@@ -69,6 +76,8 @@ cvar_t  *sv_pad_packets;
 #endif
 cvar_t  *sv_force_rate;
 cvar_t  *sv_lan_force_rate;
+cvar_t  *sv_min_rate;
+cvar_t  *sv_max_rate;
 cvar_t  *sv_calcpings_method;
 cvar_t  *sv_changemapcmd;
 
@@ -93,11 +102,13 @@ cvar_t  *sv_namechange_limit;
 
 cvar_t  *sv_allow_unconnected_cmds;
 
+cvar_t  *sv_lrcon_password;
+
 cvar_t  *g_features;
 
 cvar_t  *map_override_path;
 
-bool sv_registered;
+static bool     sv_registered;
 
 //============================================================================
 
@@ -500,16 +511,13 @@ SVC_Ack
 */
 static void SVC_Ack(void)
 {
-    master_t *m;
+    int i;
 
-    FOR_EACH_MASTER(m) {
-        if (!m->adr.port) {
-            continue;
-        }
-        if (NET_IsEqualBaseAdr(&m->adr, &net_from)) {
+    for (i = 0; i < MAX_MASTERS; i++) {
+        if (NET_IsEqualBaseAdr(&sv_masters[i].adr, &net_from)) {
             Com_DPrintf("Ping acknowledge from %s\n",
                         NET_AdrToString(&net_from));
-            m->last_ack = svs.realtime;
+            sv_masters[i].last_ack = svs.realtime;
             break;
         }
     }
@@ -628,12 +636,12 @@ typedef struct {
     char        reconnect_val[16];
 } conn_params_t;
 
-#define __reject(...) \
+#define reject_printf(...) \
     Netchan_OutOfBand(NS_SERVER, &net_from, "print\n" __VA_ARGS__)
 
 // small hack to permit one-line return statement :)
-#define reject(...) __reject(__VA_ARGS__), false
-#define reject2(...) __reject(__VA_ARGS__), NULL
+#define reject(...) reject_printf(__VA_ARGS__), false
+#define reject2(...) reject_printf(__VA_ARGS__), NULL
 
 static bool parse_basic_params(conn_params_t *p)
 {
@@ -790,11 +798,7 @@ static bool parse_enhanced_params(conn_params_t *p)
 
         // set zlib
         s = Cmd_Argv(7);
-        if (*s) {
-            p->has_zlib = !!atoi(s);
-        } else {
-            p->has_zlib = true;
-        }
+        p->has_zlib = !*s || atoi(s);
 
         // set minor protocol version
         s = Cmd_Argv(8);
@@ -837,6 +841,7 @@ static char *userinfo_ip_string(void)
 static bool parse_userinfo(conn_params_t *params, char *userinfo)
 {
     char *info, *s;
+    cvarban_t *ban;
 
     // validate userinfo
     info = Cmd_Argv(4);
@@ -890,6 +895,14 @@ static bool parse_userinfo(conn_params_t *params, char *userinfo)
         // force the IP key/value pair so the game can filter based on ip
         if (!Info_SetValueForKey(userinfo, "ip", userinfo_ip_string()))
             return reject("Oversize userinfo string.\n");
+    }
+
+    // reject if there is a kickable userinfo ban
+    if ((ban = SV_CheckInfoBans(userinfo, true)) != NULL) {
+        s = ban->comment;
+        if (!s)
+            s = "Userinfo banned.";
+        return reject("%s\nConnection refused.\n", s);
     }
 
     return true;
@@ -964,7 +977,7 @@ static void init_pmove_and_es_flags(client_t *newcl)
 
     // copy default pmove parameters
     newcl->pmp = sv_pmp;
-    newcl->pmp.airaccelerate = sv_airaccelerate->integer ? true : false;
+    newcl->pmp.airaccelerate = sv_airaccelerate->integer;
 
     // common extensions
     force = 2;
@@ -972,7 +985,7 @@ static void init_pmove_and_es_flags(client_t *newcl)
         newcl->pmp.speedmult = 2;
         force = 1;
     }
-    newcl->pmp.strafehack = sv_strafejump_hack->integer >= force ? true : false;
+    newcl->pmp.strafehack = sv_strafejump_hack->integer >= force;
 
     // r1q2 extensions
     if (newcl->protocol == PROTOCOL_VERSION_R1Q2) {
@@ -1001,7 +1014,7 @@ static void init_pmove_and_es_flags(client_t *newcl)
             force = 1;
         }
     }
-    newcl->pmp.waterhack = sv_waterjump_hack->integer >= force ? true : false;
+    newcl->pmp.waterhack = sv_waterjump_hack->integer >= force;
 }
 
 static void send_connect_packet(client_t *newcl, int nctype)
@@ -1055,7 +1068,7 @@ static void SVC_DirectConnect(void)
     conn_params_t   params;
     client_t        *newcl;
     int             number;
-    int             allow;
+    qboolean        allow;
     char            *reason;
 
     memset(&params, 0, sizeof(params));
@@ -1116,9 +1129,9 @@ static void SVC_DirectConnect(void)
     if (!allow) {
         reason = Info_ValueForKey(userinfo, "rejmsg");
         if (*reason) {
-            __reject("%s\nConnection refused.\n", reason);
+            reject_printf("%s\nConnection refused.\n", reason);
         } else {
-            __reject("Connection refused.\n");
+            reject_printf("Connection refused.\n");
         }
         return;
     }
@@ -1164,15 +1177,32 @@ static void SVC_DirectConnect(void)
     newcl->min_ping = 9999;
 }
 
-static bool rcon_valid(void)
+typedef enum {
+    RCON_BAD,
+    RCON_OK,
+    RCON_LIMITED
+} rcon_type_t;
+
+static rcon_type_t rcon_validate(void)
 {
-    if (!rcon_password->string[0])
-        return false;
+    if (rcon_password->string[0] && !strcmp(Cmd_Argv(1), rcon_password->string))
+        return RCON_OK;
 
-    if (strcmp(Cmd_Argv(1), rcon_password->string))
-        return false;
+    if (sv_lrcon_password->string[0] && !strcmp(Cmd_Argv(1), sv_lrcon_password->string))
+        return RCON_LIMITED;
 
-    return true;
+    return RCON_BAD;
+}
+
+static bool lrcon_validate(const char *s)
+{
+    stuffcmd_t *cmd;
+
+    LIST_FOR_EACH(stuffcmd_t, cmd, &sv_lrconlist, entry)
+        if (!strncmp(s, cmd->string, strlen(cmd->string)))
+            return true;
+
+    return false;
 }
 
 /*
@@ -1185,6 +1215,7 @@ Redirect all printfs.
 */
 static void SVC_RemoteCommand(void)
 {
+    rcon_type_t type;
     char *s;
 
     if (SV_RateLimited(&svs.ratelimit_rcon)) {
@@ -1193,23 +1224,44 @@ static void SVC_RemoteCommand(void)
         return;
     }
 
+    type = rcon_validate();
     s = Cmd_RawArgsFrom(2);
-    if (!rcon_valid()) {
+    if (type == RCON_BAD) {
         Com_Printf("Invalid rcon from %s:\n%s\n",
                    NET_AdrToString(&net_from), s);
-        Netchan_OutOfBand(NS_SERVER, &net_from,
-                          "print\nBad rcon_password.\n");
+        OOB_PRINT(NS_SERVER, &net_from, "print\nBad rcon_password.\n");
         return;
     }
 
-    // valid rcon packets are not rate limited
+    // authenticated rcon packets are not rate limited
     SV_RateRecharge(&svs.ratelimit_rcon);
 
-    Com_Printf("Rcon from %s:\n%s\n",
-               NET_AdrToString(&net_from), s);
+    if (type == RCON_LIMITED && lrcon_validate(s) == false) {
+        Com_Printf("Invalid limited rcon from %s:\n%s\n",
+                   NET_AdrToString(&net_from), s);
+        OOB_PRINT(NS_SERVER, &net_from,
+                  "print\nThis command is not permitted.\n");
+        return;
+    }
+
+    if (type == RCON_LIMITED) {
+        Com_Printf("Limited rcon from %s:\n%s\n",
+                   NET_AdrToString(&net_from), s);
+    } else {
+        Com_Printf("Rcon from %s:\n%s\n",
+                   NET_AdrToString(&net_from), s);
+    }
 
     SV_PacketRedirect();
-    Cmd_ExecuteString(&cmd_buffer, s);
+    if (type == RCON_LIMITED) {
+        // shift args down
+        Cmd_Shift();
+        Cmd_Shift();
+    } else {
+        // macro expand args
+        Cmd_TokenizeString(s, true);
+    }
+    Cmd_ExecuteCommand(&cmd_buffer);
     Com_EndRedirect();
 }
 
@@ -1238,7 +1290,6 @@ static void SV_ConnectionlessPacket(void)
     char    string[MAX_STRING_CHARS];
     char    *c;
     int     i;
-    size_t  len;
 
     if (SV_MatchAddress(&sv_blacklist, &net_from)) {
         Com_DPrintf("ignored blackholed connectionless packet\n");
@@ -1248,8 +1299,7 @@ static void SV_ConnectionlessPacket(void)
     MSG_BeginReading();
     MSG_ReadLong();        // skip the -1 marker
 
-    len = MSG_ReadStringLine(string, sizeof(string));
-    if (len >= sizeof(string)) {
+    if (MSG_ReadStringLine(string, sizeof(string)) >= sizeof(string)) {
         Com_DPrintf("ignored oversize connectionless packet\n");
         return;
     }
@@ -1403,11 +1453,30 @@ static void SV_GiveMsec(void)
 {
     client_t    *cl;
 
-    if (sv.framenum % (16 * SV_FRAMEDIV))
+    if (!(sv.framenum % (16 * SV_FRAMEDIV))) {
+        FOR_EACH_CLIENT(cl) {
+            cl->command_msec = 1800; // 1600 + some slop
+        }
+    }
+
+    if (svs.realtime - svs.last_timescale_check < sv_timescale_time->integer)
         return;
 
+    float d = svs.realtime - svs.last_timescale_check;
+    svs.last_timescale_check = svs.realtime;
+
     FOR_EACH_CLIENT(cl) {
-        cl->command_msec = 1800; // 1600 + some slop
+        cl->timescale = cl->cmd_msec_used / d;
+        cl->cmd_msec_used = 0;
+
+        if (sv_timescale_warn->value > 1.0f && cl->timescale > sv_timescale_warn->value) {
+            Com_Printf("%s[%s]: detected time skew: %.3f\n", cl->name,
+                       NET_AdrToString(&cl->netchan->remote_address), cl->timescale);
+        }
+
+        if (sv_timescale_kick->value > 1.0f && cl->timescale > sv_timescale_kick->value) {
+            SV_DropClient(cl, "time skew too high");
+        }
     }
 }
 
@@ -1736,7 +1805,7 @@ static void SV_MasterHeartbeat(void)
 {
     char    buffer[MAX_PACKETLEN_DEFAULT];
     size_t  len;
-    master_t *m;
+    master_t *send = NULL;
 
     if (!COM_DEDICATED)
         return;        // only dedicated servers send heartbeats
@@ -1747,7 +1816,21 @@ static void SV_MasterHeartbeat(void)
     if (svs.realtime - svs.last_heartbeat < HEARTBEAT_SECONDS * 1000)
         return;        // not time to send yet
 
-    svs.last_heartbeat = svs.realtime;
+    // find the next master to send to
+    while (svs.heartbeat_index < MAX_MASTERS) {
+        master_t *m = &sv_masters[svs.heartbeat_index++];
+        if (m->adr.type) {
+            send = m;
+            break;
+        }
+    }
+    if (svs.heartbeat_index == MAX_MASTERS ||
+        sv_masters[svs.heartbeat_index].name == NULL) {
+        svs.last_heartbeat = svs.realtime;
+        svs.heartbeat_index = 0;
+    }
+    if (!send)
+        return;
 
     // write the packet header
     memcpy(buffer, "\xff\xff\xff\xffheartbeat\n", 14);
@@ -1757,13 +1840,8 @@ static void SV_MasterHeartbeat(void)
     len += SV_StatusString(buffer + len);
 
     // send to group master
-    FOR_EACH_MASTER(m) {
-        if (m->adr.port) {
-            Com_DPrintf("Sending heartbeat to %s\n",
-                        NET_AdrToString(&m->adr));
-            NET_SendPacket(NS_SERVER, buffer, len, &m->adr);
-        }
-    }
+    Com_DPrintf("Sending heartbeat to %s\n", NET_AdrToString(&send->adr));
+    NET_SendPacket(NS_SERVER, buffer, len, &send->adr);
 }
 
 /*
@@ -1775,11 +1853,11 @@ Informs all masters that this server is going down
 */
 static void SV_MasterShutdown(void)
 {
-    master_t *m;
+    int i;
 
     // reset ack times
-    FOR_EACH_MASTER(m) {
-        m->last_ack = 0;
+    for (i = 0; i < MAX_MASTERS; i++) {
+        sv_masters[i].last_ack = 0;
     }
 
     if (!COM_DEDICATED)
@@ -1789,8 +1867,9 @@ static void SV_MasterShutdown(void)
         return;        // a private dedicated game
 
     // send to group master
-    FOR_EACH_MASTER(m) {
-        if (m->adr.port) {
+    for (i = 0; i < MAX_MASTERS; i++) {
+        master_t *m = &sv_masters[i];
+        if (m->adr.type) {
             Com_DPrintf("Sending shutdown to %s\n",
                         NET_AdrToString(&m->adr));
             OOB_PRINT(NS_SERVER, &m->adr, "shutdown");
@@ -1946,7 +2025,7 @@ void SV_UserinfoChanged(client_t *cl)
     val = Info_ValueForKey(cl->userinfo, "rate");
     if (*val) {
         cl->rate = atoi(val);
-        clamp(cl->rate, 100, 15000);
+        clamp(cl->rate, sv_min_rate->integer, sv_max_rate->integer);
     } else {
         cl->rate = 5000;
     }
@@ -1980,13 +2059,9 @@ void SV_UserinfoChanged(client_t *cl)
 #if USE_SYSCON
 void SV_SetConsoleTitle(void)
 {
-    char buffer[MAX_STRING_CHARS];
-
-    Q_snprintf(buffer, sizeof(buffer), "%s (port %d%s)",
-               sv_hostname->string, net_port->integer,
-               sv_running->integer ? "" : ", down");
-
-    Sys_SetConsoleTitle(buffer);
+    Sys_SetConsoleTitle(va("%s (port %d%s)",
+        sv_hostname->string, net_port->integer,
+        sv_running->integer ? "" : ", down"));
 }
 #endif
 
@@ -2010,6 +2085,11 @@ static void init_rate_limits(void)
     SV_RateInit(&svs.ratelimit_status, sv_status_limit->string);
     SV_RateInit(&svs.ratelimit_auth, sv_auth_limit->string);
     SV_RateInit(&svs.ratelimit_rcon, sv_rcon_limit->string);
+}
+
+static void sv_rate_changed(cvar_t *self)
+{
+    Cvar_ClampInteger(sv_min_rate, 100, Cvar_ClampInteger(sv_max_rate, 1000, INT_MAX));
 }
 
 void sv_sec_timeout_changed(cvar_t *self)
@@ -2100,6 +2180,11 @@ void SV_Init(void)
     sv_idlekick->changed = sv_sec_timeout_changed;
     sv_idlekick->changed(sv_idlekick);
     sv_enforcetime = Cvar_Get("sv_enforcetime", "1", 0);
+    sv_timescale_time = Cvar_Get("sv_timescale_time", "16", 0);
+    sv_timescale_time->changed = sv_sec_timeout_changed;
+    sv_timescale_time->changed(sv_timescale_time);
+    sv_timescale_warn = Cvar_Get("sv_timescale_warn", "0", 0);
+    sv_timescale_kick = Cvar_Get("sv_timescale_kick", "0", 0);
     sv_allow_nodelta = Cvar_Get("sv_allow_nodelta", "1", 0);
 #if USE_FPS
     sv_fps = Cvar_Get("sv_fps", "10", CVAR_LATCH);
@@ -2123,6 +2208,10 @@ void SV_Init(void)
 #endif
     sv_force_rate = Cvar_Get("sv_force_rate", "0", CVAR_LATCH);
     sv_lan_force_rate = Cvar_Get("sv_lan_force_rate", "0", CVAR_LATCH);
+    sv_min_rate = Cvar_Get("sv_min_rate", "100", CVAR_LATCH);
+    sv_max_rate = Cvar_Get("sv_max_rate", "15000", CVAR_LATCH);
+    sv_max_rate->changed = sv_min_rate->changed = sv_rate_changed;
+    sv_max_rate->changed(sv_max_rate);
     sv_calcpings_method = Cvar_Get("sv_calcpings_method", "2", 0);
     sv_changemapcmd = Cvar_Get("sv_changemapcmd", "", 0);
 
@@ -2160,6 +2249,8 @@ void SV_Init(void)
     sv_namechange_limit->changed = sv_namechange_limit_changed;
 
     sv_allow_unconnected_cmds = Cvar_Get("sv_allow_unconnected_cmds", "0", 0);
+
+    sv_lrcon_password = Cvar_Get("lrcon_password", "", CVAR_PRIVATE);
 
     Cvar_Get("sv_features", va("%d", SV_FEATURES), CVAR_ROM);
     g_features = Cvar_Get("g_features", "0", CVAR_ROM);

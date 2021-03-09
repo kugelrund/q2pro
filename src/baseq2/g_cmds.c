@@ -594,7 +594,7 @@ Cmd_Kill_f
 */
 void Cmd_Kill_f(edict_t *ent)
 {
-    if ((level.time - ent->client->respawn_time) < 5)
+    if ((level.framenum - ent->client->respawn_framenum) < 5 * BASE_FRAMERATE)
         return;
     ent->flags &= ~FL_GODMODE;
     ent->health = 0;
@@ -873,7 +873,7 @@ void ClientCommand(edict_t *ent)
         return;
     }
 
-    if (level.intermissiontime)
+    if (level.intermission_framenum)
         return;
 
     if (Q_stricmp(cmd, "use") == 0)

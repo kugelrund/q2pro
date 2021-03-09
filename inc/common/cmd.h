@@ -173,6 +173,7 @@ char    *Cmd_Args(void);
 char    *Cmd_RawArgs(void);
 char    *Cmd_ArgsFrom(int from);
 char    *Cmd_RawArgsFrom(int from);
+char    *Cmd_ArgsRange(int from, int to);
 size_t  Cmd_ArgsBuffer(char *buffer, size_t size);
 size_t  Cmd_ArgvBuffer(int arg, char *buffer, size_t size);
 int     Cmd_ArgOffset(int arg);
@@ -202,8 +203,5 @@ int Cmd_ParseOptions(const cmd_option_t *opt);
 void Cmd_PrintHelp(const cmd_option_t *opt);
 void Cmd_PrintUsage(const cmd_option_t *opt, const char *suffix);
 void Cmd_PrintHint(void);
-
-const char *Cmd_Completer(const cmd_option_t *opt, const char *partial,
-                          int argnum, int state, xgenerator_t generator);
 
 #endif // CMD_H

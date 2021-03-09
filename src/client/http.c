@@ -506,7 +506,7 @@ void HTTP_SetServer(const char *url)
     if (!*url)
         return;
 
-    if (strncmp(url, "http://", 7)) {
+    if (strncmp(url, "http://", 7) && strncmp(url, "https://", 8)) {
         Com_Printf("[HTTP] Ignoring download server URL with non-HTTP schema.\n");
         return;
     }
@@ -723,7 +723,7 @@ static void abort_downloads(void)
 // curl doesn't provide reverse-lookup of the void * ptr, so search for it
 static dlhandle_t *find_handle(CURL *curl)
 {
-    size_t      i;
+    int         i;
     dlhandle_t  *dl;
 
     for (i = 0; i < 4; i++) {
@@ -873,7 +873,7 @@ fail2:
 
             //a pak file is very special...
             if (dl->queue->type == DL_PAK) {
-                CL_RestartFilesystem(false);
+                CL_RestartFilesystem(!*fs_game->string);
                 rescan_queue();
             }
         } else if (!fatal_error) {

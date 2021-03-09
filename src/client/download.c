@@ -73,9 +73,15 @@ int CL_QueueDownload(const char *path, dltype_t type)
     // paks get bumped to the top and HTTP switches to single downloading.
     // this prevents someone on 28k dialup trying to do both the main .pak
     // and referenced configstrings data at once.
-    if (type == DL_PAK)
-        List_Insert(&cls.download.queue, &q->entry);
-    else
+    if (type == DL_PAK) {
+        dlqueue_t *p;
+
+        FOR_EACH_DLQ(p) {
+            if (p->type != DL_PAK)
+                break;
+        }
+        List_Append(&p->entry, &q->entry);
+    } else
 #endif
         List_Append(&cls.download.queue, &q->entry);
 
@@ -344,7 +350,7 @@ static void finish_udp_download(const char *msg)
     CL_StartNextDownload();
 }
 
-static int write_udp_download(byte *data, int size)
+static bool write_udp_download(byte *data, int size)
 {
     int ret;
 
@@ -353,68 +359,61 @@ static int write_udp_download(byte *data, int size)
         Com_EPrintf("[UDP] Couldn't write %s: %s\n",
                     cls.download.temp, Q_ErrorString(ret));
         finish_udp_download(NULL);
-        return -1;
+        return false;
     }
 
-    return 0;
+    return true;
 }
 
+#if USE_ZLIB
 // handles both continuous deflate stream for entire download and chunked
 // per-packet streams for compatibility.
-static int inflate_udp_download(byte *data, int inlen, int outlen)
+static bool inflate_udp_download(byte *data, int size, int decompressed_size)
 {
-#if USE_ZLIB
-
-#define CHUNK   0x10000
-
     z_streamp   z = &cls.download.z;
-    byte        buffer[CHUNK];
+    byte        buffer[0x10000];
     int         ret;
 
     // initialize stream if not done yet
     if (z->state == NULL && inflateInit2(z, -MAX_WBITS) != Z_OK)
         Com_Error(ERR_FATAL, "%s: inflateInit2() failed", __func__);
 
-    z->next_in = data;
-    z->avail_in = inlen;
+    if (!size)
+        return true;
 
     // run inflate() until output buffer not full
+    z->next_in = data;
+    z->avail_in = size;
     do {
         z->next_out = buffer;
-        z->avail_out = CHUNK;
+        z->avail_out = sizeof(buffer);
 
         ret = inflate(z, Z_SYNC_FLUSH);
         if (ret != Z_OK && ret != Z_STREAM_END) {
-            Com_EPrintf("[UDP] inflate() failed: %s\n", z->msg);
+            Com_EPrintf("[UDP] Error %d decompressing download\n", ret);
             finish_udp_download(NULL);
-            return -1;
+            return false;
         }
 
-        Com_DDPrintf("%s: %u --> %u [%d]\n",
-                     __func__,
-                     inlen - z->avail_in,
-                     CHUNK - z->avail_out,
-                     ret);
-
-        if (write_udp_download(buffer, CHUNK - z->avail_out))
-            return -1;
+        if (!write_udp_download(buffer, sizeof(buffer) - z->avail_out))
+            return false;
     } while (z->avail_out == 0);
 
-    // check uncompressed length if known
-    if (outlen > 0 && outlen != z->total_out)
-        Com_WPrintf("[UDP] Decompressed length mismatch: %d != %lu\n", outlen, z->total_out);
+    // check decompressed size if known
+    if (decompressed_size > 0 && decompressed_size != z->total_out) {
+        Com_WPrintf("[UDP] Decompressed size mismatch: expected %d, got %lu\n",
+                    decompressed_size, z->total_out);
+    }
 
     // prepare for the next stream if done
     if (ret == Z_STREAM_END)
         inflateReset(z);
 
-    return 0;
-#else
-    // should never happen
-    Com_Error(ERR_DROP, "Compressed server packet received, "
-              "but no zlib support linked in.");
-#endif
+    return true;
 }
+#else
+#define inflate_udp_download(data, size, decompressed_size)   false
+#endif
 
 /*
 =====================
@@ -423,7 +422,7 @@ CL_HandleDownload
 An UDP download data has been received from the server.
 =====================
 */
-void CL_HandleDownload(byte *data, int size, int percent, int compressed)
+void CL_HandleDownload(byte *data, int size, int percent, int decompressed_size)
 {
     dlqueue_t *q = cls.download.current;
     int ret;
@@ -432,6 +431,7 @@ void CL_HandleDownload(byte *data, int size, int percent, int compressed)
         Com_Error(ERR_DROP, "%s: no download requested", __func__);
     }
 
+    // -1 size means download was aborted
     if (size == -1) {
         if (!percent) {
             finish_udp_download("FAIL");
@@ -452,11 +452,13 @@ void CL_HandleDownload(byte *data, int size, int percent, int compressed)
         }
     }
 
-    if (compressed) {
-        if (inflate_udp_download(data, size, compressed))
+    // non-zero decompressed_size means deflated download
+    // can be -1 if streaming from .pkz
+    if (decompressed_size) {
+        if (!inflate_udp_download(data, size, decompressed_size))
             return;
     } else {
-        if (write_udp_download(data, size))
+        if (!write_udp_download(data, size))
             return;
     }
 
@@ -674,25 +676,25 @@ static void check_player(const char *name)
     CL_ParsePlayerSkin(NULL, model, skin, name);
 
     // model
-    len = Q_concat(fn, sizeof(fn), "players/", model, "/tris.md2", NULL);
+    len = Q_concat(fn, sizeof(fn), "players/", model, "/tris.md2");
     check_file_len(fn, len, DL_OTHER);
 
     // weapon models
     for (i = 0; i < cl.numWeaponModels; i++) {
-        len = Q_concat(fn, sizeof(fn), "players/", model, "/", cl.weaponModels[i], NULL);
+        len = Q_concat(fn, sizeof(fn), "players/", model, "/", cl.weaponModels[i]);
         check_file_len(fn, len, DL_OTHER);
     }
 
     // default weapon skin
-    len = Q_concat(fn, sizeof(fn), "players/", model, "/weapon.pcx", NULL);
+    len = Q_concat(fn, sizeof(fn), "players/", model, "/weapon.pcx");
     check_file_len(fn, len, DL_OTHER);
 
     // skin
-    len = Q_concat(fn, sizeof(fn), "players/", model, "/", skin, ".pcx", NULL);
+    len = Q_concat(fn, sizeof(fn), "players/", model, "/", skin, ".pcx");
     check_file_len(fn, len, DL_OTHER);
 
     // skin_i
-    len = Q_concat(fn, sizeof(fn), "players/", model, "/", skin, "_i.pcx", NULL);
+    len = Q_concat(fn, sizeof(fn), "players/", model, "/", skin, "_i.pcx");
     check_file_len(fn, len, DL_OTHER);
 
     // sexed sounds
@@ -701,7 +703,7 @@ static void check_player(const char *name)
         p = cl.configstrings[CS_SOUNDS + j];
 
         if (*p == '*') {
-            len = Q_concat(fn, sizeof(fn), "players/", model, "/", p + 1, NULL);
+            len = Q_concat(fn, sizeof(fn), "players/", model, "/", p + 1);
             check_file_len(fn, len, DL_OTHER);
         }
     }
@@ -714,7 +716,7 @@ static bool downloads_pending(dltype_t type)
 
     // DL_OTHER just checks for any download
     if (type == DL_OTHER) {
-        return !!cls.download.pending;
+        return cls.download.pending;
     }
 
     // see if there are pending downloads of the given type
@@ -807,7 +809,7 @@ void CL_RequestNextDownload(void)
                 if (name[0] == '#') {
                     len = Q_strlcpy(fn, name + 1, sizeof(fn));
                 } else {
-                    len = Q_concat(fn, sizeof(fn), "sound/", name, NULL);
+                    len = Q_concat(fn, sizeof(fn), "sound/", name);
                 }
                 check_file_len(fn, len, DL_OTHER);
             }
@@ -822,7 +824,7 @@ void CL_RequestNextDownload(void)
                 if (name[0] == '/' || name[0] == '\\') {
                     len = Q_strlcpy(fn, name + 1, sizeof(fn));
                 } else {
-                    len = Q_concat(fn, sizeof(fn), "pics/", name, ".pcx", NULL);
+                    len = Q_concat(fn, sizeof(fn), "pics/", name, ".pcx");
                 }
                 check_file_len(fn, len, DL_OTHER);
             }
@@ -852,7 +854,7 @@ void CL_RequestNextDownload(void)
             };
 
             for (i = 0; i < 6; i++) {
-                len = Q_concat(fn, sizeof(fn), "env/", cl.configstrings[CS_SKY], env_suf[i], ".tga", NULL);
+                len = Q_concat(fn, sizeof(fn), "env/", cl.configstrings[CS_SKY], env_suf[i], ".tga");
                 check_file_len(fn, len, DL_OTHER);
             }
         }
@@ -872,7 +874,7 @@ void CL_RequestNextDownload(void)
 
         if (allow_download_textures->integer) {
             for (i = 0; i < cl.bsp->numtexinfo; i++) {
-                len = Q_concat(fn, sizeof(fn), "textures/", cl.bsp->texinfo[i].name, ".wal", NULL);
+                len = Q_concat(fn, sizeof(fn), "textures/", cl.bsp->texinfo[i].name, ".wal");
                 check_file_len(fn, len, DL_OTHER);
             }
         }

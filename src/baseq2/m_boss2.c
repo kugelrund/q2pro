@@ -456,10 +456,10 @@ void boss2_pain(edict_t *self, edict_t *other, float kick, int damage)
     if (self->health < (self->max_health / 2))
         self->s.skinnum = 1;
 
-    if (level.time < self->pain_debounce_time)
+    if (level.framenum < self->pain_debounce_framenum)
         return;
 
-    self->pain_debounce_time = level.time + 3;
+    self->pain_debounce_framenum = level.framenum + 3 * BASE_FRAMERATE;
 // American wanted these at no attenuation
     if (damage < 10) {
         gi.sound(self, CHAN_VOICE, sound_pain3, 1, ATTN_NONE, 0);
@@ -558,7 +558,7 @@ bool Boss2_CheckAttack(edict_t *self)
     if (!self->monsterinfo.attack)
         return false;
 
-    if (level.time < self->monsterinfo.attack_finished)
+    if (level.framenum < self->monsterinfo.attack_finished)
         return false;
 
     if (enemy_range == RANGE_FAR)
@@ -578,7 +578,7 @@ bool Boss2_CheckAttack(edict_t *self)
 
     if (random() < chance) {
         self->monsterinfo.attack_state = AS_MISSILE;
-        self->monsterinfo.attack_finished = level.time + 2 * random();
+        self->monsterinfo.attack_finished = level.framenum + 2 * random() * BASE_FRAMERATE;
         return true;
     }
 

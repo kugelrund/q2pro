@@ -121,32 +121,6 @@ void SV_ClearWorld(void)
 
 /*
 ===============
-SV_EdictIsVisible
-
-Checks if edict is potentially visible from the given PVS row.
-===============
-*/
-bool SV_EdictIsVisible(cm_t *cm, edict_t *ent, byte *mask)
-{
-    int i;
-
-    if (ent->num_clusters == -1) {
-        // too many leafs for individual check, go by headnode
-        return CM_HeadnodeVisible(CM_NodeNum(cm, ent->headnode), mask);
-    }
-
-    // check individual leafs
-    for (i = 0; i < ent->num_clusters; i++) {
-        if (Q_IsBitSet(mask, ent->clusternums[i])) {
-            return true;
-        }
-    }
-
-    return false;   // not visible
-}
-
-/*
-===============
 SV_LinkEdict
 
 General purpose routine shared between game DLL and MVD code.
@@ -166,8 +140,7 @@ void SV_LinkEdict(cm_t *cm, edict_t *ent)
     VectorSubtract(ent->maxs, ent->mins, ent->size);
 
     // set the abs box
-    if (ent->solid == SOLID_BSP &&
-        (ent->s.angles[0] || ent->s.angles[1] || ent->s.angles[2])) {
+    if (ent->solid == SOLID_BSP && !VectorEmpty(ent->s.angles)) {
         // expand for rotation
         float   max, v;
 
@@ -210,8 +183,8 @@ void SV_LinkEdict(cm_t *cm, edict_t *ent)
 
     // set areas
     for (i = 0; i < num_leafs; i++) {
-        clusters[i] = CM_LeafCluster(leafs[i]);
-        area = CM_LeafArea(leafs[i]);
+        clusters[i] = leafs[i]->cluster;
+        area = leafs[i]->area;
         if (area) {
             // doors may legally straggle two areas,
             // but nothing should evern need more than that

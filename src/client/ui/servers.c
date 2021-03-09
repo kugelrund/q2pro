@@ -108,10 +108,12 @@ static void UpdateSelection(void)
 
     if (s && s->status == SLOT_VALID && s->numRules && uis.width >= 640) {
         m_servers.info.generic.flags &= ~QMF_HIDDEN;
-        m_servers.info.items = (void **)s->rules;
-        m_servers.info.numItems = s->numRules;
-        m_servers.info.curvalue = -1;
-        m_servers.info.prestep = 0;
+        if (m_servers.info.items != (void **)s->rules || m_servers.info.numItems != s->numRules) {
+            m_servers.info.items = (void **)s->rules;
+            m_servers.info.numItems = s->numRules;
+            m_servers.info.curvalue = -1;
+            m_servers.info.prestep = 0;
+        }
     } else {
         m_servers.info.generic.flags |= QMF_HIDDEN;
         m_servers.info.items = NULL;
@@ -120,10 +122,12 @@ static void UpdateSelection(void)
 
     if (s && s->status == SLOT_VALID && s->numPlayers) {
         m_servers.players.generic.flags &= ~QMF_HIDDEN;
-        m_servers.players.items = (void **)s->players;
-        m_servers.players.numItems = s->numPlayers;
-        m_servers.players.curvalue = -1;
-        m_servers.players.prestep = 0;
+        if (m_servers.players.items != (void **)s->players || m_servers.players.numItems != s->numPlayers) {
+            m_servers.players.items = (void **)s->players;
+            m_servers.players.numItems = s->numPlayers;
+            m_servers.players.curvalue = -1;
+            m_servers.players.prestep = 0;
+        }
     } else {
         m_servers.players.generic.flags |= QMF_HIDDEN;
         m_servers.players.items = NULL;
@@ -182,7 +186,7 @@ static serverslot_t *FindSlot(const netadr_t *search, int *index_p)
     return found;
 }
 
-static uint32_t ColorForStatus(const serverStatus_t *status)
+static uint32_t ColorForStatus(const serverStatus_t *status, unsigned ping)
 {
     if (atoi(Info_ValueForKey(status->infostring, "needpass")) >= 1)
         return uis.color.disabled.u32;
@@ -192,6 +196,9 @@ static uint32_t ColorForStatus(const serverStatus_t *status)
 
     if (Q_stricmp(Info_ValueForKey(status->infostring, "NoFake"), "ENABLED") == 0)
         return uis.color.disabled.u32;
+
+    if (ping < 30)
+        return U32_GREEN;
 
     return U32_WHITE;
 }
@@ -269,7 +276,7 @@ void UI_StatusEvent(const serverStatus_t *status)
     slot->status = SLOT_VALID;
     slot->address = net_from;
     slot->hostname = hostname;
-    slot->color = ColorForStatus(status);
+    slot->color = ColorForStatus(status, ping);
 
     m_servers.list.items[i] = slot;
 
@@ -587,9 +594,9 @@ static void ParseMasterArgs(netadr_t *broadcast)
             continue;
         }
 
-        if (!strncmp(s, "http://", 7)) {
+        if (!strncmp(s, "http://", 7) || !strncmp(s, "https://", 8)) {
 #if USE_CURL
-            len = HTTP_FetchFile(s + 7, &data);
+            len = HTTP_FetchFile(s, &data);
             if (len < 0)
                 continue;
             (*parse)(data, len, chunk);
@@ -1038,7 +1045,7 @@ static void Draw(menuFrameWork_t *self)
 static bool Push(menuFrameWork_t *self)
 {
     // save our arguments for refreshing
-    m_servers.args = UI_CopyString(Cmd_RawArgsFrom(2));
+    m_servers.args = UI_CopyString(COM_StripQuotes(Cmd_RawArgsFrom(2)));
     return true;
 }
 

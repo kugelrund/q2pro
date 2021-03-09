@@ -28,6 +28,7 @@ cvar_t  *cl_timeout;
 cvar_t  *cl_predict;
 cvar_t  *cl_gun;
 cvar_t  *cl_gunalpha;
+cvar_t  *cl_warn_on_fps_rounding;
 cvar_t  *cl_maxfps;
 cvar_t  *cl_async;
 cvar_t  *r_maxfps;
@@ -682,7 +683,7 @@ static void CL_Rcon_f(void)
         address = cls.netchan->remote_address;
     }
 
-    CL_SendRcon(&address, rcon_password->string, Cmd_RawArgs());
+    CL_SendRcon(&address, rcon_password->string, COM_StripQuotes(Cmd_RawArgs()));
 }
 
 static void CL_Rcon_c(genctx_t *ctx, int argnum)
@@ -1283,7 +1284,6 @@ static void cl_vwep_changed(cvar_t *self)
 static void CL_Name_g(genctx_t *ctx)
 {
     int i;
-    clientinfo_t *ci;
     char buffer[MAX_CLIENT_NAME];
 
     if (cls.state < ca_loading) {
@@ -1291,14 +1291,9 @@ static void CL_Name_g(genctx_t *ctx)
     }
 
     for (i = 0; i < MAX_CLIENTS; i++) {
-        ci = &cl.clientinfo[i];
-        if (!ci->name[0]) {
-            continue;
-        }
-        Q_strlcpy(buffer, ci->name, sizeof(buffer));
-        if (COM_strclr(buffer) && !Prompt_AddMatch(ctx, buffer)) {
-            break;
-        }
+        Q_strlcpy(buffer, cl.clientinfo[i].name, sizeof(buffer));
+        if (COM_strclr(buffer))
+            Prompt_AddMatch(ctx, buffer);
     }
 }
 
@@ -1315,13 +1310,11 @@ static void CL_ConnectionlessPacket(void)
     char    string[MAX_STRING_CHARS];
     char    *s, *c;
     int     i, j, k;
-    size_t  len;
 
     MSG_BeginReading();
     MSG_ReadLong(); // skip the -1
 
-    len = MSG_ReadStringLine(string, sizeof(string));
-    if (len >= sizeof(string)) {
+    if (MSG_ReadStringLine(string, sizeof(string)) >= sizeof(string)) {
         Com_DPrintf("Oversize message received.  Ignored.\n");
         return;
     }
@@ -1655,6 +1648,10 @@ void CL_UpdateUserinfo(cvar_t *var, from_t from)
         return;
     }
 
+    if (var->flags & CVAR_PRIVATE) {
+        return;
+    }
+
     if (cls.serverProtocol != PROTOCOL_VERSION_Q2PRO) {
         // transmit at next oportunity
         cls.userinfo_modified = MAX_PACKET_USERINFOS;
@@ -1832,13 +1829,14 @@ typedef struct {
     char match[1];
 } ignore_t;
 
-static list_t cl_ignores;
+static list_t   cl_ignore_text;
+static list_t   cl_ignore_nick;
 
-static ignore_t *find_ignore(const char *match)
+static ignore_t *find_ignore(list_t *list, const char *match)
 {
     ignore_t *ignore;
 
-    LIST_FOR_EACH(ignore_t, ignore, &cl_ignores, entry) {
+    LIST_FOR_EACH(ignore_t, ignore, list, entry) {
         if (!strcmp(ignore->match, match)) {
             return ignore;
         }
@@ -1847,34 +1845,34 @@ static ignore_t *find_ignore(const char *match)
     return NULL;
 }
 
-static void list_ignores(void)
+static void list_ignores(list_t *list)
 {
     ignore_t *ignore;
 
-    if (LIST_EMPTY(&cl_ignores)) {
+    if (LIST_EMPTY(list)) {
         Com_Printf("No ignore filters.\n");
         return;
     }
 
     Com_Printf("Current ignore filters:\n");
-    LIST_FOR_EACH(ignore_t, ignore, &cl_ignores, entry) {
+    LIST_FOR_EACH(ignore_t, ignore, list, entry) {
         Com_Printf("\"%s\" (%u hit%s)\n", ignore->match,
                    ignore->hits, ignore->hits == 1 ? "" : "s");
     }
 }
 
-static void add_ignore(const char *match)
+static void add_ignore(list_t *list, const char *match, size_t minlen)
 {
     ignore_t *ignore;
     size_t matchlen;
 
     // don't create the same ignore twice
-    if (find_ignore(match)) {
+    if (find_ignore(list, match)) {
         return;
     }
 
     matchlen = strlen(match);
-    if (matchlen < 3) {
+    if (matchlen < minlen) {
         Com_Printf("Match string \"%s\" is too short.\n", match);
         return;
     }
@@ -1882,14 +1880,14 @@ static void add_ignore(const char *match)
     ignore = Z_Malloc(sizeof(*ignore) + matchlen);
     ignore->hits = 0;
     memcpy(ignore->match, match, matchlen + 1);
-    List_Append(&cl_ignores, &ignore->entry);
+    List_Append(list, &ignore->entry);
 }
 
-static void remove_ignore(const char *match)
+static void remove_ignore(list_t *list, const char *match)
 {
     ignore_t *ignore;
 
-    ignore = find_ignore(match);
+    ignore = find_ignore(list, match);
     if (!ignore) {
         Com_Printf("Can't find ignore filter \"%s\"\n", match);
         return;
@@ -1899,48 +1897,43 @@ static void remove_ignore(const char *match)
     Z_Free(ignore);
 }
 
-static void remove_all_ignores(void)
+static void remove_all_ignores(list_t *list)
 {
     ignore_t *ignore, *next;
     int count = 0;
 
-    LIST_FOR_EACH_SAFE(ignore_t, ignore, next, &cl_ignores, entry) {
+    LIST_FOR_EACH_SAFE(ignore_t, ignore, next, list, entry) {
         Z_Free(ignore);
         count++;
     }
 
     Com_Printf("Removed %d ignore filter%s.\n", count, count == 1 ? "" : "s");
-    List_Init(&cl_ignores);
+    List_Init(list);
 }
 
 static void CL_IgnoreText_f(void)
 {
     if (Cmd_Argc() == 1) {
-        list_ignores();
+        list_ignores(&cl_ignore_text);
         return;
     }
 
-    add_ignore(Cmd_ArgsFrom(1));
+    add_ignore(&cl_ignore_text, Cmd_ArgsFrom(1), 3);
 }
 
 static void CL_UnIgnoreText_f(void)
 {
     if (Cmd_Argc() == 1) {
-        list_ignores();
+        list_ignores(&cl_ignore_text);
         return;
     }
 
-    if (LIST_EMPTY(&cl_ignores)) {
-        Com_Printf("No ignore filters.\n");
+    if (Cmd_Argc() == 2 && !strcmp(Cmd_Argv(1), "all")) {
+        remove_all_ignores(&cl_ignore_text);
         return;
     }
 
-    if (!strcmp(Cmd_Argv(1), "all")) {
-        remove_all_ignores();
-        return;
-    }
-
-    remove_ignore(Cmd_ArgsFrom(1));
+    remove_ignore(&cl_ignore_text, Cmd_ArgsFrom(1));
 }
 
 static void CL_IgnoreNick_c(genctx_t *ctx, int argnum)
@@ -1950,85 +1943,69 @@ static void CL_IgnoreNick_c(genctx_t *ctx, int argnum)
     }
 }
 
-// properly escapes any special characters in nickname
-static size_t parse_ignore_nick(int argnum, char *buffer)
+static void CL_UnIgnoreNick_c(genctx_t *ctx, int argnum)
 {
-    char temp[MAX_CLIENT_NAME];
-    char *p, *s;
-    int c;
-    size_t len;
+    ignore_t *ignore;
 
-    Cmd_ArgvBuffer(argnum, temp, sizeof(temp));
-
-    s = temp;
-    p = buffer;
-    len = 0;
-    while (*s) {
-        c = *s++;
-        c &= 127;
-        if (c == '?') {
-            *p++ = '\\';
-            *p++ = '?';
-            len += 2;
-        } else if (c == '*') {
-            *p++ = '\\';
-            *p++ = '*';
-            len += 2;
-        } else if (c == '\\') {
-            *p++ = '\\';
-            *p++ = '\\';
-            len += 2;
-        } else if (Q_isprint(c)) {
-            *p++ = c;
-            len++;
+    if (argnum == 1) {
+        LIST_FOR_EACH(ignore_t, ignore, &cl_ignore_nick, entry) {
+            Prompt_AddMatch(ctx, ignore->match);
         }
     }
-
-    *p = 0;
-
-    return len;
 }
 
 static void CL_IgnoreNick_f(void)
 {
-    char nick[MAX_CLIENT_NAME * 2];
-    char match[MAX_CLIENT_NAME * 3];
-
     if (Cmd_Argc() == 1) {
-        list_ignores();
+        list_ignores(&cl_ignore_nick);
         return;
     }
 
-    if (!parse_ignore_nick(1, nick)) {
-        return;
-    }
-
-    Q_snprintf(match, sizeof(match), "%s: *", nick);
-    add_ignore(match);
-
-    Q_snprintf(match, sizeof(match), "(%s): *", nick);
-    add_ignore(match);
+    add_ignore(&cl_ignore_nick, Cmd_Argv(1), 1);
 }
 
 static void CL_UnIgnoreNick_f(void)
 {
-    char nick[MAX_CLIENT_NAME * 2];
-    char match[MAX_CLIENT_NAME * 3];
-
     if (Cmd_Argc() == 1) {
-        list_ignores();
+        list_ignores(&cl_ignore_nick);
         return;
     }
 
-    if (!parse_ignore_nick(1, nick)) {
+    if (Cmd_Argc() == 2 && !strcmp(Cmd_Argv(1), "all")) {
+        remove_all_ignores(&cl_ignore_nick);
         return;
     }
 
-    Q_snprintf(match, sizeof(match), "%s: *", nick);
-    remove_ignore(match);
+    remove_ignore(&cl_ignore_nick, Cmd_Argv(1));
+}
 
-    Q_snprintf(match, sizeof(match), "(%s): *", nick);
-    remove_ignore(match);
+static bool match_ignore_nick_2(const char *nick, const char *s)
+{
+    size_t len = strlen(nick);
+
+    if (!strncmp(s, nick, len) && !strncmp(s + len, ": ", 2))
+        return true;
+
+    if (*s == '(') {
+        s++;
+        return !strncmp(s, nick, len) && !strncmp(s + len, "): ", 3);
+    }
+
+    return false;
+}
+
+static bool match_ignore_nick(const char *nick, const char *s)
+{
+    if (match_ignore_nick_2(nick, s))
+        return true;
+
+    if (*s == '[') {
+        char *p = strstr(s + 1, "] ");
+        if (p)
+            return match_ignore_nick_2(nick, p + 2);
+    }
+
+    return false;
 }
 
 /*
@@ -2041,15 +2018,22 @@ bool CL_CheckForIgnore(const char *s)
     char buffer[MAX_STRING_CHARS];
     ignore_t *ignore;
 
-    if (LIST_EMPTY(&cl_ignores)) {
+    if (LIST_EMPTY(&cl_ignore_text) && LIST_EMPTY(&cl_ignore_nick)) {
         return false;
     }
 
     Q_strlcpy(buffer, s, sizeof(buffer));
     COM_strclr(buffer);
 
-    LIST_FOR_EACH(ignore_t, ignore, &cl_ignores, entry) {
+    LIST_FOR_EACH(ignore_t, ignore, &cl_ignore_text, entry) {
         if (Com_WildCmp(ignore->match, buffer)) {
+            ignore->hits++;
+            return true;
+        }
+    }
+
+    LIST_FOR_EACH(ignore_t, ignore, &cl_ignore_nick, entry) {
+        if (match_ignore_nick(ignore->match, buffer)) {
             ignore->hits++;
             return true;
         }
@@ -2576,16 +2560,28 @@ static inline int fps_to_msec(int fps)
 #endif
 }
 
-static void warn_on_fps_rounding(cvar_t* cvar)
+static void warn_on_fps_rounding(cvar_t *cvar)
 {
-    if (cvar->integer != 0) {
-        int msec = fps_to_msec(cvar->integer);
-        if (msec != 0) {
-            int real_maxfps = 1000 / msec;
-            if (cvar->integer != real_maxfps)
-                Com_WPrintf("%s value `%d' is inexact, use `%d' instead.\n",
-                            cvar->name, cvar->integer, real_maxfps);
-        }
+    static bool warned = false;
+    int msec, real_maxfps;
+
+    if (cvar->integer <= 0 || cl_warn_on_fps_rounding->integer <= 0)
+        return;
+
+    msec = fps_to_msec(cvar->integer);
+    if (!msec)
+        return;
+
+    real_maxfps = 1000 / msec;
+    if (cvar->integer == real_maxfps)
+        return;
+
+    Com_WPrintf("%s value `%d' is inexact, using `%d' instead.\n",
+                cvar->name, cvar->integer, real_maxfps);
+    if (!warned) {
+        Com_Printf("(Set `%s' to `0' to disable this warning.)\n",
+                   cl_warn_on_fps_rounding->name);
+        warned = true;
     }
 }
 
@@ -2594,7 +2590,7 @@ static void cl_sync_changed(cvar_t *self)
     CL_UpdateFrameTimes();
 }
 
-static void cl_maxfps_changed(cvar_t* self)
+static void cl_maxfps_changed(cvar_t *self)
 {
     CL_UpdateFrameTimes();
     warn_on_fps_rounding(self);
@@ -2648,7 +2644,7 @@ static const cmdreg_t c_client[] = {
     { "ignoretext", CL_IgnoreText_f },
     { "unignoretext", CL_UnIgnoreText_f },
     { "ignorenick", CL_IgnoreNick_f, CL_IgnoreNick_c },
-    { "unignorenick", CL_UnIgnoreNick_f, CL_IgnoreNick_c },
+    { "unignorenick", CL_UnIgnoreNick_f, CL_UnIgnoreNick_c },
     { "dumpclients", CL_DumpClients_f },
     { "dumpstatusbar", CL_DumpStatusbar_f },
     { "dumplayout", CL_DumpLayout_f },
@@ -2697,7 +2693,8 @@ static void CL_InitLocal(void)
     CL_InitDownloads();
     CL_GTV_Init();
 
-    List_Init(&cl_ignores);
+    List_Init(&cl_ignore_text);
+    List_Init(&cl_ignore_nick);
 
     Cmd_Register(c_client);
 
@@ -2719,6 +2716,7 @@ static void CL_InitLocal(void)
     cl_predict = Cvar_Get("cl_predict", "1", 0);
     cl_predict->changed = cl_predict_changed;
     cl_kickangles = Cvar_Get("cl_kickangles", "1", CVAR_CHEAT);
+    cl_warn_on_fps_rounding = Cvar_Get("cl_warn_on_fps_rounding", "1", 0);
     cl_maxfps = Cvar_Get("cl_maxfps", "60", 0);
     cl_maxfps->changed = cl_maxfps_changed;
     cl_async = Cvar_Get("cl_async", "1", 0);
@@ -3078,7 +3076,7 @@ static sync_mode_t sync_mode;
 #define MIN_REF_HZ MIN_PHYS_HZ
 #define MAX_REF_HZ 1000
 
-static int fps_to_clamped_msec(cvar_t* cvar, int min, int max)
+static int fps_to_clamped_msec(cvar_t *cvar, int min, int max)
 {
     if (cvar->integer == 0)
         return fps_to_msec(max);

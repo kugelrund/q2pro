@@ -520,7 +520,7 @@ void CL_WidowSplash(void)
         dir[2] = crand();
         VectorNormalize(dir);
         VectorMA(te.pos1, 45.0f, dir, p->org);
-        VectorMA(vec3_origin, 40.0f, dir, p->vel);
+        VectorScale(dir, 40.0f, p->vel);
 
         p->accel[0] = p->accel[1] = 0;
         p->alpha = 1.0f;
@@ -786,7 +786,7 @@ void CL_IonripperTrail(vec3_t start, vec3_t ent)
 CL_TrapParticles
 ===============
 */
-void CL_TrapParticles(entity_t *ent)
+void CL_TrapParticles(centity_t *ent, vec3_t origin)
 {
     vec3_t      move;
     vec3_t      vec;
@@ -796,10 +796,14 @@ void CL_TrapParticles(entity_t *ent)
     cparticle_t *p;
     int         dec;
 
-    ent->origin[2] -= 14;
-    VectorCopy(ent->origin, start);
-    VectorCopy(ent->origin, end);
-    end[2] += 64;
+    if (cl.time - ent->fly_stoptime < 10)
+        return;
+    ent->fly_stoptime = cl.time;
+
+    VectorCopy(origin, start);
+    VectorCopy(origin, end);
+    start[2] -= 14;
+    end[2] += 50;
 
     VectorCopy(start, move);
     VectorSubtract(end, start, vec);
@@ -839,8 +843,7 @@ void CL_TrapParticles(entity_t *ent)
         vec3_t      dir;
         vec3_t      org;
 
-        ent->origin[2] += 14;
-        VectorCopy(ent->origin, org);
+        VectorCopy(origin, org);
 
         for (i = -2; i <= 2; i += 4)
             for (j = -2; j <= 2; j += 4)
