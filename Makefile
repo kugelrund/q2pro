@@ -121,6 +121,8 @@ ifndef CONFIG_X86_NO_SSE_MATH
     CFLAGS_s += -msse2 -mfpmath=sse
     CFLAGS_c += -msse2 -mfpmath=sse
     CFLAGS_g += -msse2 -mfpmath=sse
+    CFLAGS_r += -msse2 -mfpmath=sse
+    CFLAGS_x += -msse2 -mfpmath=sse
 endif
 
 BUILD_DEFS := -DCPUSTRING='"$(CPU)"'
