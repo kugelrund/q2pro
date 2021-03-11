@@ -469,7 +469,7 @@ void G_RunFrame(bool is_frame_timed_speedrun)
 
     level.framenum++;
     level.time = level.framenum * FRAMETIME;
-    if (is_frame_timed_speedrun && !level.intermissiontime) {
+    if (is_frame_timed_speedrun && !level.intermission_framenum) {
         gi.SpeedrunTimerAddMilliseconds(FRAMETIME * 1000);
     }
 

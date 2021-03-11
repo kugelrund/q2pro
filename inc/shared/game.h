@@ -275,7 +275,7 @@ char        mapname[MAX_QPATH];     // the server name (base1, etc)
 char        nextmap[MAX_QPATH];     // go here when fraglimit is hit
 
 									// intermission state
-float       intermissiontime;       // time the intermission was started
+int         intermission_framenum;  // time the intermission was started
 char        *changemap;
 int         exitintermission;
 vec3_t      intermission_origin;
