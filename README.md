@@ -23,6 +23,8 @@ Q2PRO Speed
 
 Q2PRO Speed extends Q2PRO with speedrun functionality, including:
 
-* Proper ingame timer for speedruns
+* Add strafe helper
 * Support for mission packs, implemented by Jonathan Richman, aka Qualx
 * Co-Op bugfixes
+* Make secret in waste3 work (http://pirat.snotboble.net/quake2/pump2.html)
+* Experimental ingame timer for speedruns (not used on leaderboards (yet?))
